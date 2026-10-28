@@ -246,6 +246,12 @@ const CHARACTER_TEMPLATES = {
       { name: "Poignard", expr: "1d4+3" },
       { name: "Initiative", expr: "1d10+2" }
     ],
+    skills: [
+      { name: "Pistage & Chasse", stat: "Perception", bonus: 10, desc: "Suivre des traces, poser des collets et repérer les embuscades" },
+      { name: "Tir de précision", stat: "Dextérité", bonus: 5, desc: "Viser les points faibles à l'arc" },
+      { name: "Survie en nature", stat: "Intel", bonus: 10, desc: "Orientation, plantes médicinales, dressage du chien" },
+      { name: "Discrétion", stat: "Dextérité", bonus: 5, desc: "Se déplacer silencieusement en forêt" }
+    ],
     resources: [
       { key: "dragon", name: "Bénédiction du dragon", desc: "500 PO tous les 5 scénarios", value: 0, max: 5, rechargeOnScenario: false },
       { key: "foudre", name: "Anneau de foudre", desc: "À demander à Elaïth à chaque scénar", value: 3, max: 3, rechargeOnScenario: true },
@@ -332,6 +338,10 @@ const CHARACTER_TEMPLATES = {
       { name: "Dague", expr: "1d4+1" },
       { name: "Initiative", expr: "1d10" }
     ],
+    skills: [
+      { name: "Athlétisme", stat: "Force", bonus: 0, desc: "Escalade, saut, nage et effort physique" },
+      { name: "Observation", stat: "Perception", bonus: 5, desc: "Repérer les détails cachés et les pièges" }
+    ],
     resources: [
       { key: "pouvoir1", name: "Capacité spéciale", desc: "Utilisable 3 fois par scénario", value: 3, max: 3, rechargeOnScenario: true }
     ],
@@ -394,6 +404,11 @@ const CHARACTER_TEMPLATES = {
       { name: "Marteau de guerre", expr: "1d10+2" },
       { name: "Coup de bouclier", expr: "1d4+2" },
       { name: "Initiative", expr: "1d10+1" }
+    ],
+    skills: [
+      { name: "Armes lourdes", stat: "Force", bonus: 10, desc: "Maniement de l'espadon et du marteau de guerre" },
+      { name: "Mur de bouclier", stat: "Consti", bonus: 10, desc: "Tenir la ligne et encaisser les charges" },
+      { name: "Intimidation", stat: "Social", bonus: 5, desc: "Faire plier l'adversaire par la prestance" }
     ],
     resources: [
       { key: "secondSouffle", name: "Second souffle", desc: "Récupère 1d6+2 PV en combat", value: 2, max: 2, rechargeOnScenario: true },
@@ -465,6 +480,11 @@ const CHARACTER_TEMPLATES = {
       { name: "Éclair arcanique", expr: "1d12+4" },
       { name: "Bâton runique", expr: "1d6" },
       { name: "Initiative", expr: "1d10+3" }
+    ],
+    skills: [
+      { name: "Canalisation arcanique", stat: "Intel", bonus: 10, desc: "Maîtrise des vents de magie et incantations" },
+      { name: "Savoir ancien & Runes", stat: "Intel", bonus: 10, desc: "Déchiffrer les grimoires et identifier les reliques" },
+      { name: "Sens de l'Éther", stat: "Perception", bonus: 5, desc: "Détecter les auras magiques et la corruption" }
     ],
     resources: [
       { key: "sceauAether", name: "Sceau d'Éther", desc: "Relance un jet de canalisation magique", value: 3, max: 3, rechargeOnScenario: true },

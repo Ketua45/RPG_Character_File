@@ -42,7 +42,7 @@
       <nav class="tabs">
         <button class="tab-btn active" data-tab="tab-identity">1. Identité &amp; Thème</button>
         <button class="tab-btn" data-tab="tab-stats">2. Statut &amp; Caractéristiques</button>
-        <button class="tab-btn" data-tab="tab-combat">3. Dés, Armes &amp; Pouvoirs</button>
+        <button class="tab-btn" data-tab="tab-combat">3. Dés, Armes, Compétences &amp; Pouvoirs</button>
         <button class="tab-btn" data-tab="tab-inventory">4. Objets magiques &amp; Inventaire</button>
         <button class="tab-btn" data-tab="tab-lore">5. Historique &amp; Sessions</button>
         <button class="tab-btn" data-tab="tab-export">6. Notes &amp; Export</button>
@@ -149,7 +149,7 @@
         </div>
       </div>
 
-      <!-- Onglet 3 : Dés, Armes & Pouvoirs -->
+      <!-- Onglet 3 : Dés, Armes, Compétences & Pouvoirs -->
       <div class="tab-content" id="tab-combat">
         <div class="section-card">
           <div class="section-header">
@@ -158,6 +158,15 @@
           </div>
           <p style="margin:0 0 10px;font-size:12px;color:var(--mute)">Format des dés : <code>1d10+1</code>, <code>2d6+3</code>, <code>1d8</code>, <code>1d4-1</code>…</p>
           <div class="item-list" id="weapons-list"></div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header">
+            <h2>Compétences (Jet d100 sous Caractéristique + Bonus)</h2>
+            <button class="btn btn-sm" id="add-skill-btn">+ Ajouter une compétence</button>
+          </div>
+          <p style="margin:0 0 10px;font-size:12px;color:var(--mute)">Associez chaque compétence à une caractéristique (avec un bonus de maîtrise) ou laissez-la en talent passif.</p>
+          <div class="item-list" id="skills-list"></div>
         </div>
 
         <div class="section-card">

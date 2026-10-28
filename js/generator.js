@@ -40,6 +40,7 @@ function generateStandaloneHTML(char, isPreview = false, initialTab = "play") {
     },
     sessions: Array.isArray(char.sessions) ? structuredClone(char.sessions) : [],
     magicItems: Array.isArray(char.magicItems) ? structuredClone(char.magicItems) : [],
+    skills: Array.isArray(char.skills) ? structuredClone(char.skills) : [],
     stats: {},
     statBonus: {},
     res: {},
@@ -171,7 +172,7 @@ body.edit .ed{display:block}body.edit .stat b{opacity:.35}
 body.edit .del-row{display:inline-block}
 .add-box{display:none;gap:6px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
 body.edit .add-box{display:flex}
-.add-box input{flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--line);background:var(--soft);color:var(--ink);font-size:13px}
+.add-box input,.add-box select{flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--line);background:var(--soft);color:var(--ink);font-size:13px}
 .dots{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
 .dots button{width:24px;height:24px;border-radius:50%;border:2px solid var(--gold);background:none}
 .dots button.f{background:var(--gold)}
@@ -239,6 +240,18 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
     <div class="dice" id="quick" style="margin-top:10px"></div>
     <div class="exp"><input id="expr" placeholder="Jet libre : 2d6+3" aria-label="Jet libre"><button class="btn" id="go">Lancer</button></div>
     <ul id="log"></ul>
+  </div>
+
+  <h2>Compétences <span style="font-size:11px;letter-spacing:0;text-transform:none;color:var(--mute)">· clic = jet d100 sous Caractéristique + Bonus</span></h2>
+  <div class="card">
+    <div id="skills"></div>
+    <div class="add-box" style="flex-wrap:wrap;align-items:center">
+      <input id="new-skill-name" placeholder="Nom de la compétence (ex : Pistage)…" style="min-width:140px">
+      <select id="new-skill-stat" style="max-width:150px"></select>
+      <input id="new-skill-bonus" type="number" min="-50" max="50" value="10" title="Bonus de compétence (+/-)" style="max-width:75px;text-align:center" placeholder="Bonus">
+      <input id="new-skill-desc" placeholder="Effet / description…" style="min-width:180px;flex:2">
+      <button class="btn" id="add-skill">+ Ajouter</button>
+    </div>
   </div>
 
   <h2>Charges &amp; pouvoirs</h2>
@@ -355,6 +368,7 @@ if(!S.chasseLabels)S.chasseLabels={...CHASSE_LAB};
 if(!S.lore)S.lore={backstory:'',appearance:'',relations:''};
 if(!Array.isArray(S.sessions))S.sessions=[];
 if(!Array.isArray(S.magicItems))S.magicItems=[];
+if(!Array.isArray(S.skills))S.skills=structuredClone(DEF.skills||[]);
 if(!S.statBonus)S.statBonus={};
 if((S.xp||0)<350)S.xp=350;
 const clean=()=>{for(const k in S.stats){if(!(k in DEF.stats))delete S.stats[k];else S.stats[k]=Math.max(30,Math.min(70,S.stats[k]))}};clean();
@@ -372,11 +386,37 @@ $('#stats').innerHTML=Object.keys(DEF.stats).map(k=>\`<div><button class="stat" 
 $('#weapons').innerHTML=WEAP.map(([n,e])=>\`<button class="btn" data-expr="\${e}" data-name="\${n}">\${n} <small>\${e}</small></button>\`).join('');
 $('#quick').innerHTML=[4,6,8,10,20,100].map(d=>\`<button class="btn" data-expr="1d\${d}" data-name="d\${d}">d\${d}</button>\`).join('');
 $('#res').innerHTML=RES.map(([k,n,d,m])=>\`<div class="res"><div><b>\${n}</b><small>\${d}</small></div><div class="dots" data-dots="res.\${k}" data-max="\${m}">\${Array.from({length:m},(_,i)=>\`<button data-i="\${i}" aria-label="charge \${i+1}"></button>\`).join('')}</div></div>\`).join('');
+if($('#new-skill-stat')){$('#new-skill-stat').innerHTML='<option value="">(Passif / Sans jet)</option>'+Object.keys(DEF.stats).map(k=>\`<option value="\${k}">\${LAB[k]||k}</option>\`).join('')}
 
 const stepRow=(k,n,grp)=>\`<div class="row"><button class="del-row" data-del="\${k}" data-grp="\${grp}" title="Supprimer">×</button><span>\${n}</span><button class="st" data-k="\${k}" data-d="-1">−</button><input type="number" data-k="\${k}"><button class="st" data-k="\${k}" data-d="1">+</button></div>\`;
 function renderLists(){
   if($('#items'))$('#items').innerHTML=Object.keys(S.items).map(k=>stepRow('items.'+k,S.itemLabels?.[k]||ITEMS[k]||k,'items')).join('');
   if($('#chasse'))$('#chasse').innerHTML=Object.keys(S.chasse).map(k=>stepRow('chasse.'+k,S.chasseLabels?.[k]||CHASSE_LAB[k]||k,'chasse')).join('');
+  if($('#skills')){
+    if(!S.skills.length){
+      $('#skills').innerHTML='<div style="color:var(--mute);font-size:13px;font-style:italic;padding:4px 0">Aucune compétence enregistrée (cliquez sur ✎ Éditer pour en ajouter).</div>';
+    }else{
+      $('#skills').innerHTML=S.skills.map((sk,idx)=>{
+        const stKey=sk.stat&&sk.stat in DEF.stats?sk.stat:'';
+        const stLab=stKey?(LAB[stKey]||stKey):'Passif';
+        const bon=+(sk.bonus||0);
+        const bonTxt=bon?(bon>0?'+'+bon:String(bon)):'';
+        const base=stKey?+(S.stats[stKey]||50)+ +(S.statBonus?.[stKey]||0):0;
+        const tot=base+bon;
+        return \`<div class="res" style="flex-wrap:wrap">
+          <div style="display:flex;align-items:flex-start;gap:8px;flex:1;min-width:200px">
+            <button class="del-row" data-del-skill="\${idx}" title="Supprimer">×</button>
+            <div>
+              <b>\${esc(sk.name||'Compétence')}</b>
+              <span class="badge" style="margin-left:4px;font-size:11px">\${esc(stLab)}\${bonTxt?' '+bonTxt:''}</span>
+              <small>\${esc(sk.desc||'')}</small>
+            </div>
+          </div>
+          \${stKey?\`<button class="btn" style="padding:4px 10px;font-size:12px;white-space:nowrap" data-roll-skill="\${idx}">🎲 Jet (<span data-skill-tot="\${idx}">\${tot}</span>)</button>\`:''}
+        </div>\`;
+      }).join('');
+    }
+  }
   if($('#magic-items')){
     if(!S.magicItems.length){
       $('#magic-items').innerHTML='<div style="color:var(--mute);font-size:13px;font-style:italic;padding:4px 0">Aucun objet magique enregistré (cliquez sur ✎ Éditer pour en ajouter).</div>';
@@ -438,6 +478,12 @@ function sync(){
     const k=el.dataset.statSub,base=+(S.stats[k]||50),bon=+(S.statBonus?.[k]||0);
     el.innerHTML=bon?(\`Base \${base} <em>\${bon>0?'+'+bon:bon}</em>\`):\`Base \${base}\`;
   });
+  $$('[data-skill-tot]').forEach(el=>{
+    const sk=S.skills[+el.dataset.skillTot];
+    if(sk&&sk.stat&&sk.stat in DEF.stats){
+      el.textContent=+(S.stats[sk.stat]||50)+ +(S.statBonus?.[sk.stat]||0)+ +(sk.bonus||0);
+    }
+  });
   $$('[data-dots]').forEach(d=>{const v=get(S,d.dataset.dots);[...d.children].forEach((b,i)=>b.classList.toggle('f',i<v))});
   if($('#pvbar'))$('#pvbar').style.width=Math.max(0,Math.min(100,S.pv/(S.pvMax||1)*100))+'%';
   $$('[data-meter]').forEach(m=>{const max=+(m.dataset.max||100);m.style.width=Math.min(100,(S[m.dataset.meter]||0)/max*100)+'%'});
@@ -473,6 +519,12 @@ function rollStat(k){
   const detail=bon?\`\${base}\${bon>0?'+'+bon:bon}=\${v}\`:\`\${v}\`;
   say(\`<b>\${LAB[k]||k}</b> (\${detail}) → \${r} · <span class="\${ok?'ok':'ko'}">\${ok?'Réussite':'Échec'}</span> (écart \${Math.abs(v-r)})\`);
 }
+function rollSkill(idx){
+  const sk=S.skills[idx];if(!sk||!sk.stat||!(sk.stat in DEF.stats))return;
+  const k=sk.stat,base=+(S.stats[k]||50)+ +(S.statBonus?.[k]||0),bon=+(sk.bonus||0),v=base+bon,r=rnd(100),ok=r<=v;
+  const detail=bon?\`\${LAB[k]||k} \${base}\${bon>0?'+'+bon:bon}=\${v}\`:\`\${LAB[k]||k} \${v}\`;
+  say(\`<b>\${esc(sk.name)}</b> (\${detail}) → \${r} · <span class="\${ok?'ok':'ko'}">\${ok?'Réussite':'Échec'}</span> (écart \${Math.abs(v-r)})\`);
+}
 
 // ---- événements
 document.addEventListener('click',e=>{
@@ -491,6 +543,13 @@ document.addEventListener('click',e=>{
   if(b.dataset.delMagic!==undefined){
     const idx=+b.dataset.delMagic;
     S.magicItems.splice(idx,1);renderLists();return change();
+  }
+  if(b.dataset.delSkill!==undefined){
+    const idx=+b.dataset.delSkill;
+    S.skills.splice(idx,1);renderLists();return change();
+  }
+  if(b.dataset.rollSkill!==undefined){
+    return rollSkill(+b.dataset.rollSkill);
   }
   if(b.dataset.editSess!==undefined){
     const idx=+b.dataset.editSess,s=S.sessions[idx];if(!s)return;
@@ -590,6 +649,12 @@ if($('#add-magic'))$('#add-magic').onclick=()=>{
   const maxC=Math.max(0,+(mInp?.value||0));
   S.magicItems.push({name,slot:sInp.value.trim(),desc:dInp.value.trim(),charges:maxC,maxCharges:maxC,rechargeOnScenario:rInp?rInp.checked:true,equipped:true});
   nInp.value='';sInp.value='';dInp.value='';if(mInp)mInp.value='0';renderLists();change();
+};
+if($('#add-skill'))$('#add-skill').onclick=()=>{
+  const nInp=$('#new-skill-name'),stSel=$('#new-skill-stat'),bInp=$('#new-skill-bonus'),dInp=$('#new-skill-desc');
+  const name=nInp.value.trim();if(!name)return;
+  S.skills.push({name,stat:stSel?stSel.value:'',bonus:+(bInp?.value||0),desc:dInp.value.trim()});
+  nInp.value='';dInp.value='';if(bInp)bInp.value='10';renderLists();change();
 };
 
 $('#export-save').onclick=()=>{

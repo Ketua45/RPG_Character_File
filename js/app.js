@@ -67,6 +67,12 @@ function loadRoster() {
         if (m.rechargeOnScenario === undefined) m.rechargeOnScenario = m.maxCharges > 0;
       });
     }
+    if (!Array.isArray(ch.skills)) {
+      if (ch.id === "elara-lorens") ch.skills = structuredClone(CHARACTER_TEMPLATES.elara.skills);
+      else if (ch.id === "thorin-gardefer") ch.skills = structuredClone(CHARACTER_TEMPLATES.guerrier.skills);
+      else if (ch.id === "lysandre-val") ch.skills = structuredClone(CHARACTER_TEMPLATES.mage.skills);
+      else ch.skills = [];
+    }
   });
 
   const savedActiveId = localStorage.getItem(ACTIVE_ID_KEY);
@@ -169,6 +175,7 @@ function renderEditor() {
   renderVitalsList();
   renderStatsList();
   renderWeaponsList();
+  renderSkillsList();
   renderResourcesList();
 
   $("#scenar-btn-label").value = currentChar.scenarioBtnLabel || "⟳ Nouveau scénario (recharge pouvoirs)";
@@ -318,6 +325,36 @@ function renderWeaponsList() {
   `).join("");
 
   bindListEvents(container, currentChar.weapons, renderWeaponsList);
+}
+
+function renderSkillsList() {
+  const container = $("#skills-list");
+  if (!container) return;
+  if (!Array.isArray(currentChar.skills)) {
+    currentChar.skills = [];
+  }
+  const statOptions = [
+    { key: "", label: "(Passif / Sans jet)" },
+    ...(currentChar.stats || []).map(st => ({ key: st.key, label: st.label || st.key }))
+  ];
+
+  container.innerHTML = currentChar.skills.map((sk, idx) => `
+    <div class="list-row" data-idx="${idx}">
+      <input type="text" style="width:170px;font-weight:700" data-field="name" value="${escapeHtml(sk.name || "")}" placeholder="Nom (ex: Pistage)">
+      <select data-field="stat" title="Caractéristique associée">
+        ${statOptions.map(o => `<option value="${escapeHtml(o.key)}" ${sk.stat === o.key ? "selected" : ""}>${escapeHtml(o.label)}</option>`).join("")}
+      </select>
+      <label style="font-size:11px;color:var(--mute)" title="Bonus ou malus au jet de compétence">Bonus (+/-)
+        <input type="number" class="num-input" data-field="bonus" value="${Number(sk.bonus) || 0}" min="-50" max="50" style="color:var(--gold)">
+      </label>
+      <input type="text" class="grow" data-field="desc" value="${escapeHtml(sk.desc || "")}" placeholder="Description / effets de la compétence…">
+      <button class="icon-btn" data-action="up" title="Monter" ${idx === 0 ? "disabled" : ""}>↑</button>
+      <button class="icon-btn" data-action="down" title="Descendre" ${idx === currentChar.skills.length - 1 ? "disabled" : ""}>↓</button>
+      <button class="icon-btn del" data-action="del" title="Supprimer">×</button>
+    </div>
+  `).join("");
+
+  bindListEvents(container, currentChar.skills, renderSkillsList, null, "play");
 }
 
 function renderResourcesList() {
@@ -734,6 +771,19 @@ document.addEventListener("DOMContentLoaded", () => {
     currentChar.weapons.push({ name: "Nouvelle arme", expr: "1d8" });
     renderWeaponsList();
     onCharUpdated();
+  });
+
+  $("#add-skill-btn").addEventListener("click", () => {
+    currentChar.skills = currentChar.skills || [];
+    const defaultStat = currentChar.stats?.[0]?.key || "";
+    currentChar.skills.push({
+      name: "Nouvelle compétence",
+      stat: defaultStat,
+      bonus: 10,
+      desc: "Description de la compétence…"
+    });
+    renderSkillsList();
+    onCharUpdated(true, "play");
   });
 
   $("#add-resource-btn").addEventListener("click", () => {
