@@ -83,6 +83,30 @@ function loadRoster() {
       : ch.id === "garrick-vane" ? CHARACTER_TEMPLATES.guerrier
       : ch.id === "lyra-valen" ? CHARACTER_TEMPLATES.mage
       : null;
+    if (Array.isArray(ch.magicItems)) {
+      ch.magicItems.forEach(m => {
+        if (m.expr === undefined) {
+          const wMatch = (ch.weapons || []).find(w => (w.name || "").toLowerCase() === (m.name || "").toLowerCase());
+          m.expr = wMatch ? wMatch.expr : "";
+        }
+      });
+    }
+    if (Array.isArray(ch.gear)) {
+      if (tplMatch) {
+        tplMatch.gear.forEach(tg => {
+          if (tg.expr && !ch.gear.some(g => g.key === tg.key || (g.label || "").toLowerCase() === tg.label.toLowerCase())) {
+            ch.gear.unshift(structuredClone(tg));
+          }
+        });
+      }
+      ch.gear.forEach(g => {
+        if (g.expr === undefined) {
+          const wMatch = (ch.weapons || []).find(w => (w.name || "").toLowerCase() === (g.label || "").toLowerCase());
+          g.expr = wMatch ? wMatch.expr : "";
+        }
+        if (g.equipped === undefined) g.equipped = true;
+      });
+    }
     if (ch.gender === undefined) ch.gender = tplMatch?.gender || "";
     if (ch.age === undefined) ch.age = tplMatch?.age || "";
     if (ch.height === undefined) ch.height = tplMatch?.height || "";
@@ -426,7 +450,13 @@ function renderGearList() {
   }
   container.innerHTML = currentChar.gear.map((g, idx) => `
     <div class="list-row" data-idx="${idx}">
-      <input type="text" class="grow" data-field="label" value="${escapeHtml(g.label)}" placeholder="Nom de l'objet classique (ex: Corde 10m)">
+      <input type="text" class="grow" data-field="label" value="${escapeHtml(g.label)}" placeholder="Nom de l'objet ou arme (ex: Hache, Corde 10m)">
+      <label style="font-size:11px;color:var(--mute)" title="Si c'est une arme, indiquez son jet de dés (ex: 1d8) pour l'afficher dans Dés & armes lorsqu'elle est équipée">Dés (arme)
+        <input type="text" style="width:86px;text-align:center;font-weight:700" data-field="expr" value="${escapeHtml(g.expr || "")}" placeholder="ex: 1d8">
+      </label>
+      <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer" title="Arme équipée (apparaît dans Dés & armes)">
+        <input type="checkbox" data-field="equipped" ${g.equipped !== false ? "checked" : ""}> Équipé
+      </label>
       <label style="font-size:11px;color:var(--mute)">Qté
         <input type="number" class="num-input" data-field="value" value="${g.value}" min="0">
       </label>
@@ -471,8 +501,9 @@ function renderMagicItemsList() {
   }
   container.innerHTML = currentChar.magicItems.map((m, idx) => `
     <div class="list-row" data-idx="${idx}">
-      <input type="text" style="width:155px;font-weight:700" data-field="name" value="${escapeHtml(m.name || "")}" placeholder="Nom (ex: Arc d'Aric)">
-      <input type="text" style="width:105px" data-field="slot" value="${escapeHtml(m.slot || "")}" placeholder="Type (Anneau…)">
+      <input type="text" style="width:145px;font-weight:700" data-field="name" value="${escapeHtml(m.name || "")}" placeholder="Nom (ex: Arc d'Aric)">
+      <input type="text" style="width:90px" data-field="slot" value="${escapeHtml(m.slot || "")}" placeholder="Type (Arme…)">
+      <input type="text" style="width:86px;text-align:center;font-weight:700" data-field="expr" value="${escapeHtml(m.expr || "")}" placeholder="Jet (1d10+1)" title="Jet de dés si équipé (ex: 1d10+1)">
       <input type="text" class="grow" data-field="desc" value="${escapeHtml(m.desc || "")}" placeholder="Effets / propriétés magiques…">
       <label style="font-size:11px;color:var(--mute)" title="Charges actuelles">Act.
         <input type="number" style="width:50px;text-align:center" data-field="charges" value="${m.charges ?? m.maxCharges ?? 0}" min="0" max="20">
@@ -894,7 +925,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#add-gear-btn").addEventListener("click", () => {
     currentChar.gear = currentChar.gear || [];
     const k = "gear_" + Date.now().toString(36).slice(-4);
-    currentChar.gear.push({ key: k, label: "Nouvel objet classique", value: 1 });
+    currentChar.gear.push({ key: k, label: "Nouvel objet classique", value: 1, expr: "", equipped: true });
     renderGearList();
     onCharUpdated(true, "play");
   });
@@ -911,6 +942,7 @@ document.addEventListener("DOMContentLoaded", () => {
     currentChar.magicItems.push({
       name: "Nouvel objet magique",
       slot: "Relique",
+      expr: "",
       desc: "Effets et propriétés…",
       charges: 3,
       maxCharges: 3,

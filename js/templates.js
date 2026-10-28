@@ -275,11 +275,13 @@ const CHARACTER_TEMPLATES = {
     ],
     gearCardTitle: "Inventaire non consommable",
     gear: [
-      { key: "pieges", label: "Pièges à loup", value: 2 },
-      { key: "clochettes", label: "Clochettes", value: 5 },
-      { key: "sifflets", label: "Sifflets de chasse", value: 20 },
-      { key: "cordes", label: "Cordes renforcées", value: 3 },
-      { key: "couverture", label: "Cape & couverture de bivouac", value: 1 }
+      { key: "hache", label: "Hache", value: 1, expr: "1d8", equipped: true },
+      { key: "poignard", label: "Poignard", value: 1, expr: "1d4+3", equipped: true },
+      { key: "pieges", label: "Pièges à loup", value: 2, expr: "", equipped: true },
+      { key: "clochettes", label: "Clochettes", value: 5, expr: "", equipped: true },
+      { key: "sifflets", label: "Sifflets de chasse", value: 20, expr: "", equipped: true },
+      { key: "cordes", label: "Cordes renforcées", value: 3, expr: "", equipped: true },
+      { key: "couverture", label: "Cape & couverture de bivouac", value: 1, expr: "", equipped: true }
     ],
     showSecondaryCard: true,
     secondaryCardTitle: "Tableau de chasse",
@@ -292,9 +294,9 @@ const CHARACTER_TEMPLATES = {
       { key: "Bouquetin", label: "Bouquetin", value: 1 }
     ],
     magicItems: [
-      { name: "Arc d'Aric", slot: "Arme", desc: "Arc enchanté (+1 aux dégâts, +3 Dextérité)", charges: 0, maxCharges: 0, rechargeOnScenario: false, equipped: true },
-      { name: "Anneau de foudre", slot: "Anneau", desc: "À demander à Elaïth à chaque scénar", charges: 3, maxCharges: 3, rechargeOnScenario: true, equipped: true },
-      { name: "Anneau de Gang Bole", slot: "Anneau", desc: "Flèche +2 dégâts, inesquivable", charges: 3, maxCharges: 3, rechargeOnScenario: true, equipped: true }
+      { name: "Arc d'Aric", slot: "Arme", expr: "1d10+1", desc: "Arc enchanté (+1 aux dégâts, +3 Dextérité)", charges: 0, maxCharges: 0, rechargeOnScenario: false, equipped: true },
+      { name: "Anneau de foudre", slot: "Anneau", expr: "", desc: "À demander à Elaïth à chaque scénar", charges: 3, maxCharges: 3, rechargeOnScenario: true, equipped: true },
+      { name: "Anneau de Gang Bole", slot: "Anneau", expr: "", desc: "Flèche +2 dégâts, inesquivable", charges: 3, maxCharges: 3, rechargeOnScenario: true, equipped: true }
     ],
     cond: "",
     notes: "",
@@ -370,10 +372,12 @@ const CHARACTER_TEMPLATES = {
     ],
     gearCardTitle: "Inventaire non consommable",
     gear: [
-      { key: "cordes", label: "Corde (10m)", value: 1 },
-      { key: "sacCouchage", label: "Sac de couchage", value: 1 },
-      { key: "briquet", label: "Briquet à silex", value: 1 },
-      { key: "outre", label: "Outre d'eau", value: 1 }
+      { key: "armePrincipale", label: "Arme principale", value: 1, expr: "1d8", equipped: true },
+      { key: "dague", label: "Dague", value: 1, expr: "1d4+1", equipped: true },
+      { key: "cordes", label: "Corde (10m)", value: 1, expr: "", equipped: true },
+      { key: "sacCouchage", label: "Sac de couchage", value: 1, expr: "", equipped: true },
+      { key: "briquet", label: "Briquet à silex", value: 1, expr: "", equipped: true },
+      { key: "outre", label: "Outre d'eau", value: 1, expr: "", equipped: true }
     ],
     showSecondaryCard: true,
     secondaryCardTitle: "Tableau de chasse & Hauts faits",
@@ -452,10 +456,11 @@ const CHARACTER_TEMPLATES = {
     ],
     gearCardTitle: "Inventaire non consommable",
     gear: [
-      { key: "armurePlates", label: "Demi-plate renforcée", value: 1 },
-      { key: "bouclierAcier", label: "Écu d'acier du Bastion", value: 1 },
-      { key: "pierreAffuter", label: "Pierres à affûter", value: 3 },
-      { key: "grappin", label: "Grappin & corde de chanvre", value: 1 }
+      { key: "marteauGuerre", label: "Marteau de guerre", value: 1, expr: "1d10+2", equipped: true },
+      { key: "bouclierAcier", label: "Coup de bouclier", value: 1, expr: "1d4+2", equipped: true },
+      { key: "armurePlates", label: "Demi-plate renforcée", value: 1, expr: "", equipped: true },
+      { key: "pierreAffuter", label: "Pierres à affûter", value: 3, expr: "", equipped: true },
+      { key: "grappin", label: "Grappin & corde de chanvre", value: 1, expr: "", equipped: true }
     ],
     showSecondaryCard: true,
     secondaryCardTitle: "Tableau de chasse",
@@ -465,8 +470,8 @@ const CHARACTER_TEMPLATES = {
       { key: "Trolls", label: "Troll des collines", value: 1 }
     ],
     magicItems: [
-      { name: "Espadon runique de Thorek", slot: "Arme", desc: "Lame gravée de runes naines (+3 aux dégâts)", charges: 0, maxCharges: 0, rechargeOnScenario: false, equipped: true },
-      { name: "Talisman du Bastion", slot: "Amulette", desc: "+5 en Volonté contre la peur, 2 absorptions/scénario", charges: 2, maxCharges: 2, rechargeOnScenario: true, equipped: true }
+      { name: "Espadon runique", slot: "Arme", expr: "2d6+3", desc: "Lame gravée de runes naines (+3 aux dégâts)", charges: 0, maxCharges: 0, rechargeOnScenario: false, equipped: true },
+      { name: "Talisman du Bastion", slot: "Amulette", expr: "", desc: "+5 en Volonté contre la peur, 2 absorptions/scénario", charges: 2, maxCharges: 2, rechargeOnScenario: true, equipped: true }
     ],
     cond: "",
     notes: "",
@@ -540,10 +545,10 @@ const CHARACTER_TEMPLATES = {
     ],
     gearCardTitle: "Inventaire non consommable",
     gear: [
-      { key: "grimoire", label: "Grimoire de la Tour d'Argent", value: 1 },
-      { key: "plumeEncre", label: "Nécessaire de calligraphie", value: 1 },
-      { key: "loupeRunique", label: "Loupe d'expertise", value: 1 },
-      { key: "lanterne", label: "Lanterne sourde", value: 1 }
+      { key: "grimoire", label: "Grimoire de la Tour d'Argent", value: 1, expr: "", equipped: true },
+      { key: "plumeEncre", label: "Nécessaire de calligraphie", value: 1, expr: "", equipped: true },
+      { key: "loupeRunique", label: "Loupe d'expertise", value: 1, expr: "", equipped: true },
+      { key: "lanterne", label: "Lanterne sourde", value: 1, expr: "", equipped: true }
     ],
     showSecondaryCard: true,
     secondaryCardTitle: "Créatures étudiées",
@@ -553,9 +558,9 @@ const CHARACTER_TEMPLATES = {
       { key: "Artefacts", label: "Reliques identifiées", value: 4 }
     ],
     magicItems: [
-      { name: "Bâton de Pierre de Lune", slot: "Bâton", desc: "Catalyseur arcanique (+5 aux tests d'Intelligence)", charges: 0, maxCharges: 0, rechargeOnScenario: false, equipped: true },
-      { name: "Anneau du Voile", slot: "Anneau", desc: "Projette un bouclier cristallin (2 charges/scénar)", charges: 2, maxCharges: 2, rechargeOnScenario: true, equipped: true },
-      { name: "Boussole d'Éther", slot: "Relique", desc: "Pointe vers la source de magie la plus proche (1/scénar)", charges: 1, maxCharges: 1, rechargeOnScenario: true, equipped: false }
+      { name: "Bâton runique", slot: "Bâton", expr: "1d6", desc: "Bâton de Pierre de Lune (+5 aux tests d'Intelligence)", charges: 0, maxCharges: 0, rechargeOnScenario: false, equipped: true },
+      { name: "Anneau du Voile", slot: "Anneau", expr: "", desc: "Projette un bouclier cristallin (2 charges/scénar)", charges: 2, maxCharges: 2, rechargeOnScenario: true, equipped: true },
+      { name: "Boussole d'Éther", slot: "Relique", expr: "", desc: "Pointe vers la source de magie la plus proche (1/scénar)", charges: 1, maxCharges: 1, rechargeOnScenario: true, equipped: false }
     ],
     cond: "",
     notes: "",

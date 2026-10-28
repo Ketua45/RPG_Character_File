@@ -53,6 +53,7 @@ function generateStandaloneHTML(char, isPreview = false, initialTab = "play") {
     res: {},
     items: {},
     gear: {},
+    gearMeta: {},
     chasse: {},
     t: 0,
     log: []
@@ -98,6 +99,10 @@ function generateStandaloneHTML(char, isPreview = false, initialTab = "play") {
   const gearObj = {};
   (char.gear || []).forEach(g => {
     defObj.gear[g.key] = Number(g.value) || 0;
+    defObj.gearMeta[g.key] = {
+      expr: (g.expr || "").trim(),
+      equipped: g.equipped !== false
+    };
     gearObj[g.key] = g.label;
   });
 
@@ -307,8 +312,9 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
     <div id="magic-items"></div>
     <div class="add-box" style="flex-wrap:wrap;align-items:center">
       <input id="new-magic-name" placeholder="Nom de l'objet magique…" style="min-width:140px">
-      <input id="new-magic-slot" placeholder="Type (Anneau, Arme…)" style="max-width:140px">
-      <input id="new-magic-desc" placeholder="Effet / propriétés…" style="min-width:180px;flex:2">
+      <input id="new-magic-slot" placeholder="Type (Anneau, Arme…)" style="max-width:130px">
+      <input id="new-magic-expr" placeholder="Jet (ex: 1d10+1)" title="Jet de dés si équipé (optionnel)" style="max-width:115px;text-align:center">
+      <input id="new-magic-desc" placeholder="Effet / propriétés…" style="min-width:160px;flex:2">
       <input id="new-magic-max" type="number" min="0" max="20" value="0" title="Charges max (0 = sans charges)" style="max-width:70px;text-align:center" placeholder="Charges">
       <label style="font-size:12px;display:inline-flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap">
         <input type="checkbox" id="new-magic-rech" checked> ⟳ scénar.
@@ -327,7 +333,7 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
     <div class="card">
       <div class="lbl">${escapeHtml(char.gearCardTitle || "Inventaire non consommable")}</div>
       <div id="gear"></div>
-      <div class="add-box"><input id="new-gear" placeholder="Nouvel objet classique…"><button class="btn" id="add-gear">+ Ajouter</button></div>
+      <div class="add-box" style="flex-wrap:wrap"><input id="new-gear" placeholder="Nouvel objet ou arme…" style="min-width:130px"><input id="new-gear-expr" placeholder="Jet (ex: 1d8)" title="Si c'est une arme, indiquez ses dés (ex: 1d8)" style="max-width:110px;text-align:center"><button class="btn" id="add-gear">+ Ajouter</button></div>
     </div>
   </div>
 
@@ -421,6 +427,7 @@ if(!IS_PREVIEW){try{const t=localStorage.getItem(STORAGE_KEY);if(t)merge(S,JSON.
 if(!S.itemLabels)S.itemLabels={...ITEMS};
 if(!S.gear)S.gear={};
 if(!S.gearLabels)S.gearLabels={...GEAR};
+if(!S.gearMeta)S.gearMeta=structuredClone(DEF.gearMeta||{});
 if(!S.chasseLabels)S.chasseLabels={...CHASSE_LAB};
 if(!S.meta)S.meta=structuredClone(DEF.meta||{gender:'',age:'',height:'',weight:'',rank:''});
 if(!S.lore)S.lore={backstory:'',appearance:'',relations:''};
@@ -441,15 +448,66 @@ $$('.sheet-tab').forEach(b=>b.onclick=()=>switchSheetTab(b.dataset.sheetTab));
 // ---- construction
 $('#vitals').innerHTML=VIT.map(([n,k,m,c,hp,bar])=>\`<div class="card" style="--c:var(\${c})"><div class="lbl">\${n}</div><div class="big"><button class="st" data-k="\${k}" data-d="-1" aria-label="moins">−</button><input type="number" data-k="\${k}" aria-label="\${n}" \${k=='xp'?'min="350"':''}><button class="st" data-k="\${k}" data-d="1" aria-label="plus">+</button></div>\${hp?\`<div class="sub">PV de base / max : <b data-v="pvMax"></b></div><input class="ed" type="number" data-k="pvMax" aria-label="PV max"><div class="meter"><i id="pvbar"></i></div>\`:m?\`<div class="sub">/ <b>\${m}</b></div>\`+(bar?\`<div class="meter"><i data-meter="\${k}" data-max="\${m}"></i></div>\`:''):k=='xp'?'<div class="sub">Min. 350</div>':'<div class="sub">&nbsp;</div>'}</div>\`).join('');
 $('#stats').innerHTML=Object.keys(DEF.stats).map(k=>\`<div><button class="stat" data-roll="\${k}"><span>\${LAB[k]||k}</span><b data-stat-tot="\${k}"></b><small data-stat-sub="\${k}"></small></button><div class="bon-row" title="Bonus ponctuel (objet magique ou consommable)"><span>Boost</span><button class="st" data-k="statBonus.\${k}" data-d="-1">−</button><input type="number" data-k="statBonus.\${k}" aria-label="Bonus \${LAB[k]||k}"><button class="st" data-k="statBonus.\${k}" data-d="1">+</button></div><input class="ed" type="number" min="30" max="70" data-k="stats.\${k}" title="Valeur de base (30 à 70)" aria-label="Base \${LAB[k]||k}"></div>\`).join('');
-$('#weapons').innerHTML=WEAP.map(([n,e])=>\`<button class="btn" data-expr="\${e}" data-name="\${n}">\${n} <small>\${e}</small></button>\`).join('');
 $('#quick').innerHTML=[4,6,8,10,20,100].map(d=>\`<button class="btn" data-expr="1d\${d}" data-name="d\${d}">d\${d}</button>\`).join('');
 $('#res').innerHTML=RES.map(([k,n,d,m])=>\`<div class="res"><div><b>\${n}</b><small>\${d}</small></div><div class="dots" data-dots="res.\${k}" data-max="\${m}">\${Array.from({length:m},(_,i)=>\`<button data-i="\${i}" aria-label="charge \${i+1}"></button>\`).join('')}</div></div>\`).join('');
 if($('#new-skill-stat')){$('#new-skill-stat').innerHTML='<option value="">(Passif / Sans jet)</option>'+Object.keys(DEF.stats).map(k=>\`<option value="\${k}">\${LAB[k]||k}</option>\`).join('')}
 
+const normName=s=>String(s||'').trim().toLowerCase();
+const findWeapExpr=name=>{const n=normName(name),w=WEAP.find(([wn])=>normName(wn)===n);return w?w[1]:''};
+
+function renderWeapons(){
+  if(!$('#weapons'))return;
+  const btns=[];
+  const handledNames=new Set();
+  // 1. Armes issues des objets magiques équipés
+  (S.magicItems||[]).forEach(m=>{
+    const expr=(m.expr||findWeapExpr(m.name)||'').trim();
+    if(expr){
+      handledNames.add(normName(m.name));
+      if(m.equipped!==false){
+        btns.push(\`<button class="btn" data-expr="\${esc(expr)}" data-name="\${esc(m.name)}" title="Objet magique équipé">✦ \${esc(m.name)} <small>\${esc(expr)}</small></button>\`);
+      }
+    }
+  });
+  // 2. Armes issues de l'inventaire non consommable équipées (et qté > 0)
+  Object.keys(S.gear||{}).forEach(k=>{
+    const label=S.gearLabels?.[k]||GEAR[k]||k;
+    const meta=S.gearMeta?.[k]||{};
+    const expr=(meta.expr||findWeapExpr(label)||'').trim();
+    if(expr){
+      handledNames.add(normName(label));
+      if((S.gear[k]||0)>0&&meta.equipped!==false){
+        btns.push(\`<button class="btn" data-expr="\${esc(expr)}" data-name="\${esc(label)}" title="Arme d'inventaire équipée">⚔ \${esc(label)} <small>\${esc(expr)}</small></button>\`);
+      }
+    }
+  });
+  // 3. Jets de base (ex: Initiative, sorts...) non liés à un objet d'inventaire
+  WEAP.forEach(([n,e])=>{
+    if(!handledNames.has(normName(n))){
+      btns.push(\`<button class="btn" data-expr="\${esc(e)}" data-name="\${esc(n)}">\${esc(n)} <small>\${esc(e)}</small></button>\`);
+    }
+  });
+  $('#weapons').innerHTML=btns.join('');
+}
+
 const stepRow=(k,n,grp)=>\`<div class="row"><button class="del-row" data-del="\${k}" data-grp="\${grp}" title="Supprimer">×</button><span>\${n}</span><button class="st" data-k="\${k}" data-d="-1">−</button><input type="number" data-k="\${k}"><button class="st" data-k="\${k}" data-d="1">+</button></div>\`;
+const gearRow=k=>{
+  const label=S.gearLabels?.[k]||GEAR[k]||k;
+  const meta=S.gearMeta?.[k]||(S.gearMeta[k]={expr:findWeapExpr(label),equipped:true});
+  const expr=(meta.expr||findWeapExpr(label)||'').trim();
+  const eq=meta.equipped!==false;
+  return \`<div class="row">
+    <button class="del-row" data-del="gear.\${k}" data-grp="gear" title="Supprimer">×</button>
+    <span>\${esc(label)}\${expr?\` <span class="badge" style="font-size:11px;margin-left:4px">⚔ \${esc(expr)}</span>\`:''}</span>
+    \${expr?\`<button class="btn \${eq?'on':''}" style="padding:2px 8px;font-size:11px;white-space:nowrap" data-toggle-gear="\${k}" title="Équiper / ranger pour afficher dans Dés & armes">\${eq?'⚔ Équipé':'En sac'}</button>\`:''}
+    <button class="st" data-k="gear.\${k}" data-d="-1">−</button>
+    <input type="number" data-k="gear.\${k}">
+    <button class="st" data-k="gear.\${k}" data-d="1">+</button>
+  </div>\`;
+};
 function renderLists(){
   if($('#items'))$('#items').innerHTML=Object.keys(S.items).map(k=>stepRow('items.'+k,S.itemLabels?.[k]||ITEMS[k]||k,'items')).join('');
-  if($('#gear'))$('#gear').innerHTML=Object.keys(S.gear).map(k=>stepRow('gear.'+k,S.gearLabels?.[k]||GEAR[k]||k,'gear')).join('');
+  if($('#gear'))$('#gear').innerHTML=Object.keys(S.gear).map(k=>gearRow(k)).join('');
   if($('#chasse'))$('#chasse').innerHTML=Object.keys(S.chasse).map(k=>stepRow('chasse.'+k,S.chasseLabels?.[k]||CHASSE_LAB[k]||k,'chasse')).join('');
   if($('#skills')){
     if(!S.skills.length){
@@ -482,12 +540,14 @@ function renderLists(){
     }else{
       $('#magic-items').innerHTML=S.magicItems.map((m,idx)=>{
         const maxC=+(m.maxCharges||0),curC=+(m.charges??maxC);
+        const expr=(m.expr||findWeapExpr(m.name)||'').trim();
         return \`<div class="res" style="flex-wrap:wrap">
           <div style="display:flex;align-items:flex-start;gap:8px;flex:1;min-width:200px">
             <button class="del-row" data-del-magic="\${idx}" title="Supprimer">×</button>
             <div>
               <b>\${esc(m.name||'Objet magique')}</b>
               \${m.slot?\`<span class="badge" style="margin-left:4px;font-size:11px">\${esc(m.slot)}</span>\`:''}
+              \${expr?\`<span class="badge" style="margin-left:4px;font-size:11px">⚔ \${esc(expr)}</span>\`:''}
               \${maxC>0&&m.rechargeOnScenario!==false?\`<span class="badge" style="margin-left:4px;font-size:10px" title="Se recharge à chaque nouveau scénario">⟳ / scénar</span>\`:''}
               <small>\${esc(m.desc||'')}</small>
             </div>
@@ -500,6 +560,7 @@ function renderLists(){
       }).join('');
     }
   }
+  renderWeapons();
 }
 renderLists();
 
@@ -605,8 +666,15 @@ document.addEventListener('click',e=>{
   if(b.dataset.del){
     const grp=b.dataset.grp,rawKey=b.dataset.del.split('.').slice(1).join('.');
     if(grp=='items'){delete S.items[rawKey];if(S.itemLabels)delete S.itemLabels[rawKey]}
-    if(grp=='gear'){delete S.gear[rawKey];if(S.gearLabels)delete S.gearLabels[rawKey]}
+    if(grp=='gear'){delete S.gear[rawKey];if(S.gearLabels)delete S.gearLabels[rawKey];if(S.gearMeta)delete S.gearMeta[rawKey]}
     if(grp=='chasse'){delete S.chasse[rawKey];if(S.chasseLabels)delete S.chasseLabels[rawKey]}
+    renderLists();return change();
+  }
+  if(b.dataset.toggleGear!==undefined){
+    const k=b.dataset.toggleGear;
+    S.gearMeta=S.gearMeta||{};
+    const m=S.gearMeta[k]||(S.gearMeta[k]={expr:findWeapExpr(S.gearLabels?.[k]||GEAR[k]||k),equipped:true});
+    m.equipped=m.equipped===false;
     renderLists();return change();
   }
   if(b.dataset.toggleMagic!==undefined){
@@ -643,7 +711,7 @@ document.addEventListener('click',e=>{
     }
     return;
   }
-  if(b.dataset.d){const k=b.dataset.k;put(S,k,clamp(k,(+get(S,k)||0)+ +b.dataset.d));return change()}
+  if(b.dataset.d){const k=b.dataset.k;put(S,k,clamp(k,(+get(S,k)||0)+ +b.dataset.d));if(k.startsWith('gear.'))renderWeapons();return change()}
   if(b.dataset.roll)return rollStat(b.dataset.roll);
   if(b.dataset.expr)return rollExpr(b.dataset.expr,b.dataset.name);
   const mdots=b.closest('[data-magic-dots]');
@@ -657,6 +725,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('input',e=>{const el=e.target,k=el.dataset.k;if(!k)return;
   put(S,k,el.type=='number'?clamp(k,+el.value||0):el.value);
+  if(k.startsWith('gear.'))renderWeapons();
   if(el.type=='number'||k.startsWith('meta.')){sync()}save()});
 $('#go').onclick=()=>rollExpr($('#expr').value,'Jet libre');
 $('#expr').onkeydown=e=>{if(e.key=='Enter')$('#go').click()};
@@ -714,9 +783,11 @@ if($('#add-item'))$('#add-item').onclick=()=>{
   S.items[k]=1;S.itemLabels=S.itemLabels||{};S.itemLabels[k]=name;inp.value='';renderLists();change();
 };
 if($('#add-gear'))$('#add-gear').onclick=()=>{
-  const inp=$('#new-gear'),name=inp.value.trim();if(!name)return;
+  const inp=$('#new-gear'),eInp=$('#new-gear-expr'),name=inp.value.trim(),expr=(eInp?.value||'').trim();if(!name)return;
   const k=name.replace(/[^a-zA-Z0-9_]/g,'_')+'_'+Date.now().toString(36).slice(-3);
-  S.gear[k]=1;S.gearLabels=S.gearLabels||{};S.gearLabels[k]=name;inp.value='';renderLists();change();
+  S.gear[k]=1;S.gearLabels=S.gearLabels||{};S.gearLabels[k]=name;
+  S.gearMeta=S.gearMeta||{};S.gearMeta[k]={expr,equipped:true};
+  inp.value='';if(eInp)eInp.value='';renderLists();change();
 };
 if($('#add-chasse'))$('#add-chasse').onclick=()=>{
   const inp=$('#new-chasse'),name=inp.value.trim();if(!name)return;
@@ -724,11 +795,11 @@ if($('#add-chasse'))$('#add-chasse').onclick=()=>{
   S.chasse[k]=1;S.chasseLabels=S.chasseLabels||{};S.chasseLabels[k]=name;inp.value='';renderLists();change();
 };
 if($('#add-magic'))$('#add-magic').onclick=()=>{
-  const nInp=$('#new-magic-name'),sInp=$('#new-magic-slot'),dInp=$('#new-magic-desc'),mInp=$('#new-magic-max'),rInp=$('#new-magic-rech');
+  const nInp=$('#new-magic-name'),sInp=$('#new-magic-slot'),eInp=$('#new-magic-expr'),dInp=$('#new-magic-desc'),mInp=$('#new-magic-max'),rInp=$('#new-magic-rech');
   const name=nInp.value.trim();if(!name)return;
   const maxC=Math.max(0,+(mInp?.value||0));
-  S.magicItems.push({name,slot:sInp.value.trim(),desc:dInp.value.trim(),charges:maxC,maxCharges:maxC,rechargeOnScenario:rInp?rInp.checked:true,equipped:true});
-  nInp.value='';sInp.value='';dInp.value='';if(mInp)mInp.value='0';renderLists();change();
+  S.magicItems.push({name,slot:sInp.value.trim(),expr:(eInp?.value||'').trim(),desc:dInp.value.trim(),charges:maxC,maxCharges:maxC,rechargeOnScenario:rInp?rInp.checked:true,equipped:true});
+  nInp.value='';sInp.value='';if(eInp)eInp.value='';dInp.value='';if(mInp)mInp.value='0';renderLists();change();
 };
 if($('#add-skill'))$('#add-skill').onclick=()=>{
   const nInp=$('#new-skill-name'),stSel=$('#new-skill-stat'),bInp=$('#new-skill-bonus'),dInp=$('#new-skill-desc');
