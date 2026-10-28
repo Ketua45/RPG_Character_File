@@ -2,6 +2,8 @@
 
 A zero-dependency, browser-based studio for designing, customizing, previewing, and exporting **100% standalone HTML RPG character sheets**.
 
+**🌐 Live Demo on GitHub Pages**: [https://ketua45.github.io/RPG_Character_File/](https://ketua45.github.io/RPG_Character_File/)
+
 Developed by **Compagnie Française de Systèmes et Algorithmes**.
 
 ---
@@ -46,6 +48,9 @@ RPG_Character_File/
 ├── index.html                  # Main Studio application (5-tab editor + live preview)
 ├── README.md                   # Project documentation (English)
 ├── .gitignore                  # Git ignore rules
+├── .github/
+│   └── workflows/
+│       └── deploy.yml          # GitHub Pages automated deployment workflow
 ├── css/
 │   └── style.css               # Studio layout, dark gold theme, and responsive styles
 ├── js/
