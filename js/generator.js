@@ -232,6 +232,31 @@ body.edit .add-box{display:flex}
 textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;resize:vertical}
 .txt{min-height:0}
 .lore-area{min-height:130px;line-height:1.5}
+.lore-ed-badge{display:none;font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+body.edit .lore-ed-badge{display:inline-block}
+.lore-view{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;line-height:1.6;font-size:14px;color:var(--ink);min-height:70px}
+.lore-view p{margin:0 0 8px}
+.lore-view p:last-child{margin-bottom:0}
+.lore-view h2,.lore-view h3,.lore-view h4{font-family:Georgia,serif;color:var(--acc);margin:12px 0 6px;padding-bottom:2px;border-bottom:1px solid var(--line)}
+.lore-view h2{font-size:17px}
+.lore-view h3{font-size:15px}
+.lore-view h4{font-size:14px}
+.lore-view ul,.lore-view ol{margin:4px 0 8px 22px;padding:0}
+.lore-view li{margin-bottom:4px}
+.lore-view blockquote{margin:6px 0 8px;padding:6px 12px;border-left:3px solid var(--gold);background:var(--soft);color:var(--mute);font-style:italic;border-radius:0 6px 6px 0}
+.lore-view hr{border:0;border-top:1px solid var(--line);margin:12px 0}
+.lore-view code{background:var(--soft);color:var(--acc);padding:2px 5px;border-radius:4px;font-family:Consolas,monospace;font-size:12px}
+.lore-view pre{background:var(--soft);padding:8px 10px;border-radius:6px;overflow-x:auto;margin:6px 0 8px}
+.lore-view pre code{padding:0;background:none}
+.lore-view a{color:var(--acc);text-decoration:underline}
+.lore-view strong{color:var(--ink);font-weight:700}
+.lore-view em{color:var(--ink);font-style:italic}
+.lore-view del{color:var(--mute);text-decoration:line-through}
+.lore-view .lore-empty{color:var(--mute);font-style:italic;font-size:13px;margin:0}
+body:not(.edit) .lore-area{display:none!important}
+body:not(.edit) .lore-view{display:block}
+body.edit .lore-area{display:block}
+body.edit .lore-view{display:none}
 /* Journal des sessions */
 .sess-list{display:flex;flex-direction:column;gap:12px;margin-top:12px}
 .sess-card{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:10px;padding:12px 14px}
@@ -252,11 +277,12 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
 .print-tab-head{display:none;align-items:center;justify-content:space-between;background:var(--band);color:var(--on);border:1.5px solid var(--gold);border-radius:8px;padding:6px 12px;margin-bottom:10px;font-family:Georgia,serif;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 @media print{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  .tools,.foot,.exp,#quick,#saved,.brand-foot,.sheet-tabs,.bar,.log-head,#log,.st,#archive-notes-btn,#toggle-sess-form,.sess-form,[data-edit-sess],[data-del-sess],.add-box,.del-row,.ed,.hero-ed{display:none!important}
+  .tools,.foot,.exp,#quick,#saved,.brand-foot,.sheet-tabs,.bar,.log-head,#log,.st,#archive-notes-btn,#toggle-sess-form,.sess-form,[data-edit-sess],[data-del-sess],.add-box,.del-row,.ed,.hero-ed,.lore-area{display:none!important}
   .sheet-pane{display:block!important;margin-bottom:0}
   .sheet-pane + .sheet-pane{page-break-before:always;break-before:page;padding-top:10px}
   .print-tab-head{display:flex!important}
   .print-tab-foot{display:block!important}
+  .lore-view{display:block!important;border:none!important;padding:4px 0!important}
   .card,.sess-card{break-inside:avoid;page-break-inside:avoid}
   textarea{overflow:hidden!important;resize:none!important}
   body{background:var(--bg);color:var(--ink)}
@@ -381,22 +407,34 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
 <!-- ONGLET 2 : HISTORIQUE & LORE -->
 <section class="sheet-pane ${initialTab === "lore" ? "active" : ""}" id="pane-lore">
   <div class="print-tab-head"><span>📜 Historique &amp; Lore</span><span>${escapeHtml(char.name || "PERSONNAGE")}</span></div>
-  <h2>Origines &amp; Histoire du personnage</h2>
-  <textarea class="lore-area" data-k="lore.backstory" style="min-height:160px" placeholder="Racontez l'histoire, le passé, l'origine et les événements fondateurs de votre personnage…"></textarea>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">
+    <h2 style="margin:0">Origines &amp; Histoire du personnage</h2>
+    <span class="lore-ed-badge">✎ Mode Édition actif · Markdown supporté</span>
+  </div>
+  <div class="lore-view" id="view-lore-backstory"></div>
+  <textarea class="lore-area" data-k="lore.backstory" style="min-height:160px" placeholder="Racontez l'histoire, le passé, l'origine et les événements fondateurs de votre personnage (Markdown : **gras**, *italique*, # titres, - listes, &gt; citations)…"></textarea>
 
-  <div class="grid g2" style="margin-top:6px">
+  <div class="grid g2" style="margin-top:12px">
     <div>
-      <h2>Apparence, Personnalité &amp; Objectifs</h2>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px">
+        <h2 style="margin:0">Apparence, Personnalité &amp; Objectifs</h2>
+        <span class="lore-ed-badge">✎ Édition</span>
+      </div>
+      <div class="lore-view" id="view-lore-appearance"></div>
       <textarea class="lore-area" data-k="lore.appearance" placeholder="Signes particuliers, caractère, motivations, secrets…"></textarea>
     </div>
     <div>
-      <h2>Alliés, Contacts &amp; Relations</h2>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px">
+        <h2 style="margin:0">Alliés, Contacts &amp; Relations</h2>
+        <span class="lore-ed-badge">✎ Édition</span>
+      </div>
+      <div class="lore-view" id="view-lore-relations"></div>
       <textarea class="lore-area" data-k="lore.relations" placeholder="Compagnons de route, mentors, factions, ennemis jurés…"></textarea>
     </div>
   </div>
 
   ${char.showSecondaryCard !== false ? `
-  <h2>${escapeHtml(char.secondaryCardTitle || "Tableau de chasse")}</h2>
+  <h2 style="margin-top:16px">${escapeHtml(char.secondaryCardTitle || "Tableau de chasse")}</h2>
   <div class="card">
     <div id="chasse"></div>
     <div class="add-box"><input id="new-chasse" placeholder="Nouvelle entrée…"><button class="btn" id="add-chasse">+ Ajouter</button></div>
@@ -458,6 +496,54 @@ const get=(o,p)=>p.split('.').reduce((a,k)=>a?.[k],o);
 const put=(o,p,v)=>{const k=p.split('.'),l=k.pop();k.reduce((a,x)=>a[x]||(a[x]={}),o)[l]=v};
 const merge=(a,b)=>{for(const k in b){a[k]=b[k]&&typeof b[k]=='object'&&!Array.isArray(b[k])&&a[k]?merge(a[k],b[k]):b[k]}return a};
 const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const renderMarkdown=md=>{
+  if(!md||!String(md).trim())return '<p class="lore-empty"><em>Aucun texte renseigné. (Cliquez sur ✎ Éditer pour rédiger)</em></p>';
+  let s=esc(md);
+  s=s.replace(/\\r\\n/g,'\\n').replace(/\\r/g,'\\n');
+  s=s.replace(/\`\`\`([\\w-]*)\\n([\\s\\S]*?)\`\`\`/g,(_,l,code)=>'<pre><code>'+code.trim()+'</code></pre>');
+  s=s.replace(/\`([^\`]+)\`/g,'<code>$1</code>');
+  s=s.replace(/^### (.*$)/gim,'<h4>$1</h4>');
+  s=s.replace(/^## (.*$)/gim,'<h3>$1</h3>');
+  s=s.replace(/^# (.*$)/gim,'<h2>$1</h2>');
+  s=s.replace(/^(?:&gt;|>)\\s*(.*$)/gim,'<blockquote>$1</blockquote>');
+  s=s.replace(/^(?:---|\\*\\*\\*|___)\\s*$/gim,'<hr>');
+  s=s.replace(/\\*\\*\\*([^*]+)\\*\\*\\*/g,'<strong><em>$1</em></strong>');
+  s=s.replace(/\\*\\*([^*]+)\\*\\*/g,'<strong>$1</strong>');
+  s=s.replace(/__([^_]+)__/g,'<strong>$1</strong>');
+  s=s.replace(/\\*([^*]+)\\*/g,'<em>$1</em>');
+  s=s.replace(/_([^_]+)_/g,'<em>$1</em>');
+  s=s.replace(/~~([^~]+)~~/g,'<del>$1</del>');
+  s=s.replace(/\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\s)]+)\\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  const lines=s.split('\\n');
+  let inUl=false,inOl=false;
+  const out=[];
+  for(let rawLine of lines){
+    const line=rawLine.trim();
+    const ulMatch=line.match(/^[-*•]\\s+(.*)$/);
+    const olMatch=line.match(/^(\\d+)\\.\\s+(.*)$/);
+    if(ulMatch){
+      if(inOl){out.push('</ol>');inOl=false;}
+      if(!inUl){out.push('<ul>');inUl=true;}
+      out.push('<li>'+ulMatch[1]+'</li>');
+    }else if(olMatch){
+      if(inUl){out.push('</ul>');inUl=false;}
+      if(!inOl){out.push('<ol>');inOl=true;}
+      out.push('<li>'+olMatch[2]+'</li>');
+    }else{
+      if(inUl){out.push('</ul>');inUl=false;}
+      if(inOl){out.push('</ol>');inOl=false;}
+      if(!line){}
+      else if(line.startsWith('<h')||line.startsWith('<blockquote')||line.startsWith('<hr')||line.startsWith('<pre')){
+        out.push(line);
+      }else{
+        out.push('<p>'+line+'</p>');
+      }
+    }
+  }
+  if(inUl)out.push('</ul>');
+  if(inOl)out.push('</ol>');
+  return out.join('\\n')||'<p class="lore-empty"><em>Aucun texte renseigné.</em></p>';
+};
 let S=structuredClone(DEF);
 if(!IS_PREVIEW){try{const t=localStorage.getItem(STORAGE_KEY);if(t)merge(S,JSON.parse(t))}catch(e){}}
 if(!S.itemLabels)S.itemLabels={...ITEMS};
@@ -673,6 +759,9 @@ function sync(){
   const logs=S.log||[];
   if($('#log-count'))$('#log-count').textContent=logs.length;
   $('#log').innerHTML=logs.length?logs.map(t=>\`<li>\${t}</li>\`).join(''):'<li style="color:var(--mute);font-style:italic;font-size:13px">Aucun jet enregistré pour cette session.</li>';
+  if($('#view-lore-backstory'))$('#view-lore-backstory').innerHTML=renderMarkdown(S.lore?.backstory);
+  if($('#view-lore-appearance'))$('#view-lore-appearance').innerHTML=renderMarkdown(S.lore?.appearance);
+  if($('#view-lore-relations'))$('#view-lore-relations').innerHTML=renderMarkdown(S.lore?.relations);
 }
 let lsOk=true;
 function persist(){if(IS_PREVIEW)return;S.t=Date.now();try{localStorage.setItem(STORAGE_KEY,JSON.stringify(S));lsOk=true}catch(e){lsOk=false}}
@@ -792,11 +881,11 @@ document.addEventListener('input',e=>{const el=e.target,k=el.dataset.k;if(!k)ret
   if((EDIT_ONLY_VITALS.has(k)||k.startsWith('statBonus.'))&&!document.body.classList.contains('edit')){sync();return}
   put(S,k,el.type=='number'?clamp(k,+el.value||0):el.value);
   if(k.startsWith('gear.'))renderWeapons();
-  if(el.type=='number'||k.startsWith('meta.')){sync()}save()});
+  if(el.type=='number'||k.startsWith('meta.')||k.startsWith('lore.')){sync()}save()});
 $('#go').onclick=()=>rollExpr($('#expr').value,'Jet libre');
 $('#expr').onkeydown=e=>{if(e.key=='Enter')$('#go').click()};
 if($('#clear-log'))$('#clear-log').onclick=()=>{S.log=[];change()};
-$('#edit').onclick=e=>{document.body.classList.toggle('edit');e.target.classList.toggle('on')};
+$('#edit').onclick=e=>{document.body.classList.toggle('edit');e.target.classList.toggle('on');sync()};
 $('#theme').onclick=()=>{const r=document.documentElement,d=getComputedStyle(r).getPropertyValue('--bg').trim()==${JSON.stringify(c.darkBg)};r.dataset.theme=d?'light':'dark'};
 function rechargeScenario(){
   RES.forEach(([k,n,d,m,rech])=>{if(rech)S.res[k]=m});
