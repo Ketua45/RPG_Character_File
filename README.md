@@ -2,6 +2,8 @@
 
 A zero-dependency, browser-based studio for designing, customizing, previewing, and exporting **100% standalone HTML RPG character sheets**.
 
+**🌐 Live Demo on GitHub Pages**: [https://ketua45.github.io/RPG_Character_File/](https://ketua45.github.io/RPG_Character_File/)
+
 Developed by **Compagnie Française de Systèmes et Algorithmes**.
 
 ---
@@ -11,7 +13,7 @@ Developed by **Compagnie Française de Systèmes et Algorithmes**.
 ### 🎨 Interactive Studio (`index.html`)
 - **Live Split-Screen Preview**: Edit identity, stats, skills, inventory, lore, and session logs on the left while testing the interactive character sheet in real time on the right (Desktop & Mobile views).
 - **Character Roster & Templates**: Manage multiple characters in browser `localStorage` and start quickly from 4 built-in templates:
-  - **Elara Lorens** *(Half-Elf · Ranger · Trapper)*
+  - **Elara Lorens** *(Half-Elf · Ranger · Scout)*
   - **Garrick Vane** *(Human · Warrior · Shieldbreaker)*
   - **Lyra Valen** *(High-Elf · Mage · Arcane Scholar)*
   - **Blank Standard Sheet** *(Customizable starter template)*
@@ -46,6 +48,9 @@ RPG_Character_File/
 ├── index.html                  # Main Studio application (5-tab editor + live preview)
 ├── README.md                   # Project documentation (English)
 ├── .gitignore                  # Git ignore rules
+├── .github/
+│   └── workflows/
+│       └── deploy.yml          # GitHub Pages automated deployment workflow
 ├── css/
 │   └── style.css               # Studio layout, dark gold theme, and responsive styles
 ├── js/

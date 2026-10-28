@@ -216,12 +216,12 @@ const CHARACTER_TEMPLATES = {
     id: "elara-lorens",
     storageKey: "elara-v1",
     name: "ELARA LORENS",
-    subtitle: "Demie-elfe · Rôdeuse · Trappeuse",
+    subtitle: "Demie-elfe · Rôdeuse · Éclaireuse",
     gender: "Féminin",
     age: "28 ans",
     height: "1m72",
     weight: "58 kg",
-    rank: "Éclaireuse vétérane",
+    rank: "Éclaireuse",
     portrait: ELARA_PORTRAIT,
     theme: {
       preset: "forest",
@@ -229,91 +229,88 @@ const CHARACTER_TEMPLATES = {
       colors: { ...THEME_PRESETS.forest.colors }
     },
     vitals: [
-      { key: "pv", label: "Points de vie", value: 19, max: 19, color: "--red", isHp: true, showBar: true },
-      { key: "corr", label: "Corruption", value: 6, max: 100, color: "--pur", isHp: false, showBar: true },
-      { key: "folie", label: "Folie", value: 11, max: 100, color: "--pur", isHp: false, showBar: true },
-      { key: "xp", label: "Expérience", value: 385, max: 0, color: "--acc", isHp: false, showBar: false },
-      { key: "or", label: "Or (po)", value: 1967, max: 0, color: "--gold", isHp: false, showBar: false },
+      { key: "pv", label: "Points de vie", value: 20, max: 20, color: "--red", isHp: true, showBar: true },
+      { key: "corr", label: "Corruption", value: 0, max: 100, color: "--pur", isHp: false, showBar: true },
+      { key: "folie", label: "Folie", value: 5, max: 100, color: "--pur", isHp: false, showBar: true },
+      { key: "xp", label: "Expérience", value: 375, max: 0, color: "--acc", isHp: false, showBar: false },
+      { key: "or", label: "Or (po)", value: 150, max: 0, color: "--gold", isHp: false, showBar: false },
       { key: "chance", label: "Chance", value: 50, max: 0, color: "--acc", isHp: false, showBar: false }
     ],
     stats: [
-      { key: "Force", label: "Force", value: 52, bonus: 0 },
-      { key: "Consti", label: "Consti.", value: 51, bonus: 0 },
+      { key: "Force", label: "Force", value: 50, bonus: 0 },
+      { key: "Consti", label: "Consti.", value: 50, bonus: 0 },
       { key: "Intel", label: "Intel.", value: 55, bonus: 0 },
       { key: "Volonté", label: "Volonté", value: 45, bonus: 0 },
       { key: "Social", label: "Social", value: 45, bonus: 0 },
-      { key: "Dextérité", label: "Dextérité", value: 67, bonus: 6 },
-      { key: "Perception", label: "Perception", value: 70, bonus: 0 }
+      { key: "Dextérité", label: "Dextérité", value: 65, bonus: 5 },
+      { key: "Perception", label: "Perception", value: 65, bonus: 0 }
     ],
     weapons: [
-      { name: "Arc d'Aric", expr: "1d10+1" },
-      { name: "Hache", expr: "1d8" },
-      { name: "Poignard", expr: "1d4+3" },
+      { name: "Arc long sylvestre", expr: "1d10+1" },
+      { name: "Hachette", expr: "1d8" },
+      { name: "Dague de chasse", expr: "1d4+2" },
       { name: "Initiative", expr: "1d10+2" }
     ],
     skills: [
-      { name: "Dressage & Empathie animale", category: "Social", stat: "Social", bonus: 10, desc: "Commandement du chien de chasse et apaisement des bêtes" },
-      { name: "Tir de précision", category: "Corporel", stat: "Dextérité", bonus: 5, desc: "Viser les points faibles à l'arc" },
-      { name: "Discrétion", category: "Corporel", stat: "Dextérité", bonus: 5, desc: "Se déplacer silencieusement en forêt" },
+      { name: "Empathie animale", category: "Social", stat: "Social", bonus: 10, desc: "Apaiser les bêtes et diriger un compagnon animal" },
+      { name: "Tir de précision", category: "Corporel", stat: "Dextérité", bonus: 10, desc: "Viser les points faibles à distance" },
+      { name: "Discrétion", category: "Corporel", stat: "Dextérité", bonus: 5, desc: "Se déplacer silencieusement dans les ombres et les bois" },
       { name: "Pistage & Chasse", category: "Utilitaire", stat: "Perception", bonus: 10, desc: "Suivre des traces, poser des collets et repérer les embuscades" },
-      { name: "Survie en nature", category: "Utilitaire", stat: "Intel", bonus: 10, desc: "Orientation, plantes médicinales, bivouac" }
+      { name: "Survie en nature", category: "Utilitaire", stat: "Intel", bonus: 10, desc: "Orientation, plantes médicinales et bivouac" }
     ],
     resources: [
-      { key: "dragon", name: "Bénédiction du dragon", desc: "500 PO tous les 5 scénarios", value: 0, max: 5, rechargeOnScenario: false },
-      { key: "foudre", name: "Anneau de foudre", desc: "À demander à Elaïth à chaque scénar", value: 3, max: 3, rechargeOnScenario: true },
-      { key: "gang", name: "Anneau de Gang Bole", desc: "Flèche +2 dégâts, inesquivable", value: 3, max: 3, rechargeOnScenario: true }
+      { key: "tirRapide", name: "Salve rapide", desc: "Tire deux flèches en une seule action", value: 2, max: 2, rechargeOnScenario: true },
+      { key: "marqueChasseur", name: "Marque du chasseur", desc: "+2 aux dégâts contre une cible désignée", value: 3, max: 3, rechargeOnScenario: true },
+      { key: "pasSylvestre", name: "Pas sylvestre", desc: "Déplacement furtif sans laisser de traces", value: 2, max: 2, rechargeOnScenario: true }
     ],
-    scenarioBtnLabel: "⟳ Nouveau scénario (recharge anneaux)",
+    scenarioBtnLabel: "⟳ Nouveau scénario (recharge capacités)",
     restBtnLabel: "☾ Repos : PV au max",
     inventoryTitle: "Inventaire & Équipement",
     itemsCardTitle: "Inventaire consommable",
     items: [
-      { key: "collets", label: "Collets", value: 9 },
-      { key: "rations", label: "Rations", value: 7 },
-      { key: "rationsChien", label: "Rations (chien)", value: 6 },
-      { key: "fleches", label: "Créations de flèches", value: 8 },
-      { key: "fiole", label: "Fiole corrosive", value: 1 }
+      { key: "fleches", label: "Carquois de flèches", value: 20 },
+      { key: "rations", label: "Rations de voyage", value: 6 },
+      { key: "collets", label: "Collets de chasse", value: 4 },
+      { key: "herbes", label: "Herbes médicinales", value: 3 },
+      { key: "huile", label: "Fiole d'huile", value: 2 }
     ],
     gearCardTitle: "Inventaire non consommable",
     gear: [
-      { key: "hache", label: "Hache", category: "Arme", value: 1, expr: "1d8", equipped: true },
-      { key: "poignard", label: "Poignard", category: "Arme", value: 1, expr: "1d4+3", equipped: true },
+      { key: "hache", label: "Hachette", category: "Arme", value: 1, expr: "1d8", equipped: true },
+      { key: "poignard", label: "Dague de chasse", category: "Arme", value: 1, expr: "1d4+2", equipped: true },
       { key: "armureCuir", label: "Armure de cuir souple", category: "Armure", value: 1, expr: "1d4", equipped: true },
-      { key: "pieges", label: "Pièges à loup", category: "Équipement", value: 1, expr: "", equipped: true },
-      { key: "clochettes", label: "Clochettes", category: "Équipement", value: 1, expr: "", equipped: true },
-      { key: "sifflets", label: "Sifflets de chasse", category: "Équipement", value: 1, expr: "", equipped: true },
-      { key: "cordes", label: "Cordes renforcées", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "pieges", label: "Piège à mâchoires", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "sifflets", label: "Sifflet d'éclaireur", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "cordes", label: "Corde de chanvre (15m)", category: "Équipement", value: 1, expr: "", equipped: true },
       { key: "couverture", label: "Cape & couverture de bivouac", category: "Équipement", value: 1, expr: "", equipped: true }
     ],
     showSecondaryCard: true,
     secondaryCardTitle: "Tableau de chasse",
     chasse: [
-      { key: "Sanglier", label: "Sanglier", value: 1 },
-      { key: "Ours géant", label: "Ours géant", value: 1 },
-      { key: "Gobelins", label: "Gobelins", value: 2 },
-      { key: "Squig", label: "Squig", value: 1 },
-      { key: "ObeGobelin", label: "ObeGobelin", value: 1 },
-      { key: "Bouquetin", label: "Bouquetin", value: 1 }
+      { key: "Loups", label: "Loups des bois", value: 3 },
+      { key: "Gobelins", label: "Éclaireurs gobelins", value: 2 },
+      { key: "Sanglier", label: "Sanglier géant", value: 1 },
+      { key: "Ours", label: "Ours des cavernes", value: 1 }
     ],
     magicItems: [
-      { name: "Arc d'Aric", slot: "Arme", expr: "1d10+1", desc: "Arc enchanté (+1 aux dégâts, +3 Dextérité)", charges: 0, maxCharges: 0, rechargeOnScenario: false, equipped: true },
-      { name: "Anneau de foudre", slot: "Anneau", expr: "", desc: "À demander à Elaïth à chaque scénar", charges: 3, maxCharges: 3, rechargeOnScenario: true, equipped: true },
-      { name: "Anneau de Gang Bole", slot: "Anneau", expr: "", desc: "Flèche +2 dégâts, inesquivable", charges: 3, maxCharges: 3, rechargeOnScenario: true, equipped: true }
+      { name: "Arc long sylvestre", slot: "Arme", expr: "1d10+1", desc: "Arc gravé de runes elfiques (+1 aux dégâts, +5 Dextérité)", charges: 0, maxCharges: 0, rechargeOnScenario: false, equipped: true },
+      { name: "Anneau des Vents", slot: "Anneau", expr: "", desc: "Flèche guidée par le vent (+2 dégâts, ignore le couvert)", charges: 3, maxCharges: 3, rechargeOnScenario: true, equipped: true },
+      { name: "Cape de Feuillage", slot: "Cape", expr: "", desc: "Camouflage naturel en milieu boisé (1/scénario)", charges: 1, maxCharges: 1, rechargeOnScenario: true, equipped: true }
     ],
     cond: "",
     notes: "",
     lore: {
-      backstory: "Née à la lisière des forêts profondes, Elara a appris très tôt l'art du pistage et de la survie. Accompagnée de son fidèle chien de chasse, elle met ses talents de trappeuse et d'archère au service des expéditions les plus périlleuses.",
-      appearance: "Regard perçant, cape de cuir patinée par les intempéries, arc d'Aric toujours à portée de main. Pragmatique, prudente et loyale envers ses compagnons de route.",
-      relations: "• Elaïth : allié mystique (recharge l'Anneau de foudre à chaque scénario)\n• Compagnons d'armes de la compagnie"
+      backstory: "Originaire des marches forestières, Elara a grandi parmi les pisteurs et les gardes-frontières. Habile à l'arc et experte en survie, elle guide les expéditions à travers les terres sauvages.",
+      appearance: "Regard perçant, cape de cuir vert sombre patinée par les voyages, arc long toujours à portée de main. Calme, observatrice et méthodique.",
+      relations: "• Guilde des Éclaireurs des Marches\n• Compagnons d'aventure"
     },
     sessions: [
       {
         id: "scen-1",
         title: "Les Pistes de la Forêt Sombre",
         date: "Scénario 1",
-        rewards: "+35 XP · +350 PO",
-        summary: "Traque d'un ours géant et d'une bande de gobelins embusqués dans les ravins."
+        rewards: "+25 XP · +100 PO",
+        summary: "Reconnaissance dans les ravins boisés et dispersion d'une embuscade de gobelins."
       }
     ]
   },

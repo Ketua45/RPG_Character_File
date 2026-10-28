@@ -436,7 +436,7 @@ function renderWeaponsList() {
   const container = $("#weapons-list");
   container.innerHTML = currentChar.weapons.map((w, idx) => `
     <div class="list-row" data-idx="${idx}">
-      <input type="text" class="grow" data-field="name" value="${escapeHtml(w.name)}" placeholder="Nom de l'arme ou du jet (ex: Arc d'Aric)">
+      <input type="text" class="grow" data-field="name" value="${escapeHtml(w.name)}" placeholder="Nom de l'arme ou du jet (ex: Arc long)">
       <input type="text" style="width:110px;text-align:center;font-weight:700" data-field="expr" value="${escapeHtml(w.expr)}" placeholder="Ex: 1d10+1">
       <button class="icon-btn" data-action="up" title="Monter" ${idx === 0 ? "disabled" : ""}>↑</button>
       <button class="icon-btn" data-action="down" title="Descendre" ${idx === currentChar.weapons.length - 1 ? "disabled" : ""}>↓</button>
@@ -598,7 +598,7 @@ function renderMagicItemsList() {
   }
   container.innerHTML = currentChar.magicItems.map((m, idx) => `
     <div class="list-row" data-idx="${idx}">
-      <input type="text" style="width:145px;font-weight:700" data-field="name" value="${escapeHtml(m.name || "")}" placeholder="Nom (ex: Arc d'Aric)">
+      <input type="text" style="width:145px;font-weight:700" data-field="name" value="${escapeHtml(m.name || "")}" placeholder="Nom (ex: Arc sylvestre)">
       <input type="text" style="width:90px" data-field="slot" value="${escapeHtml(m.slot || "")}" placeholder="Type (Arme…)">
       <input type="text" style="width:86px;text-align:center;font-weight:700" data-field="expr" value="${escapeHtml(m.expr || "")}" placeholder="Jet (1d10+1)" title="Jet de dés si équipé (ex: 1d10+1)">
       <input type="text" class="grow" data-field="desc" value="${escapeHtml(m.desc || "")}" placeholder="Effets / propriétés magiques…">
