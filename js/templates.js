@@ -2,7 +2,7 @@
 
 const THEME_PRESETS = {
   forest: {
-    name: "Forêt & Or (Elara · Défaut)",
+    name: "Forêt & Or (Défaut)",
     colors: {
       bg: "#f3eddd",
       card: "#fbf8ef",
@@ -217,6 +217,11 @@ const CHARACTER_TEMPLATES = {
     storageKey: "elara-v1",
     name: "ELARA LORENS",
     subtitle: "Demie-elfe · Rôdeuse · Trappeuse",
+    gender: "Féminin",
+    age: "28 ans",
+    height: "1m72",
+    weight: "58 kg",
+    rank: "Éclaireuse vétérane",
     portrait: ELARA_PORTRAIT,
     theme: {
       preset: "forest",
@@ -232,19 +237,26 @@ const CHARACTER_TEMPLATES = {
       { key: "chance", label: "Chance", value: 50, max: 0, color: "--acc", isHp: false, showBar: false }
     ],
     stats: [
-      { key: "Force", label: "Force", value: 52 },
-      { key: "Consti", label: "Consti.", value: 51 },
-      { key: "Intel", label: "Intel.", value: 55 },
-      { key: "Volonté", label: "Volonté", value: 45 },
-      { key: "Social", label: "Social", value: 45 },
-      { key: "Dextérité", label: "Dextérité", value: 73 },
-      { key: "Perception", label: "Perception", value: 70 }
+      { key: "Force", label: "Force", value: 52, bonus: 0 },
+      { key: "Consti", label: "Consti.", value: 51, bonus: 0 },
+      { key: "Intel", label: "Intel.", value: 55, bonus: 0 },
+      { key: "Volonté", label: "Volonté", value: 45, bonus: 0 },
+      { key: "Social", label: "Social", value: 45, bonus: 0 },
+      { key: "Dextérité", label: "Dextérité", value: 67, bonus: 6 },
+      { key: "Perception", label: "Perception", value: 70, bonus: 0 }
     ],
     weapons: [
       { name: "Arc d'Aric", expr: "1d10+1" },
       { name: "Hache", expr: "1d8" },
       { name: "Poignard", expr: "1d4+3" },
       { name: "Initiative", expr: "1d10+2" }
+    ],
+    skills: [
+      { name: "Dressage & Empathie animale", category: "Social", stat: "Social", bonus: 10, desc: "Commandement du chien de chasse et apaisement des bêtes" },
+      { name: "Tir de précision", category: "Corporel", stat: "Dextérité", bonus: 5, desc: "Viser les points faibles à l'arc" },
+      { name: "Discrétion", category: "Corporel", stat: "Dextérité", bonus: 5, desc: "Se déplacer silencieusement en forêt" },
+      { name: "Pistage & Chasse", category: "Utilitaire", stat: "Perception", bonus: 10, desc: "Suivre des traces, poser des collets et repérer les embuscades" },
+      { name: "Survie en nature", category: "Utilitaire", stat: "Intel", bonus: 10, desc: "Orientation, plantes médicinales, bivouac" }
     ],
     resources: [
       { key: "dragon", name: "Bénédiction du dragon", desc: "500 PO tous les 5 scénarios", value: 0, max: 5, rechargeOnScenario: false },
@@ -253,18 +265,25 @@ const CHARACTER_TEMPLATES = {
     ],
     scenarioBtnLabel: "⟳ Nouveau scénario (recharge anneaux)",
     restBtnLabel: "☾ Repos : PV au max",
-    inventoryTitle: "Inventaire consommable",
-    itemsCardTitle: "Consommables",
+    inventoryTitle: "Inventaire & Équipement",
+    itemsCardTitle: "Inventaire consommable",
     items: [
       { key: "collets", label: "Collets", value: 9 },
       { key: "rations", label: "Rations", value: 7 },
       { key: "rationsChien", label: "Rations (chien)", value: 6 },
-      { key: "pieges", label: "Pièges à loup", value: 2 },
-      { key: "clochettes", label: "Clochettes", value: 5 },
-      { key: "sifflets", label: "Sifflets de chasse", value: 20 },
       { key: "fleches", label: "Créations de flèches", value: 8 },
-      { key: "cordes", label: "Cordes renforcées", value: 3 },
       { key: "fiole", label: "Fiole corrosive", value: 1 }
+    ],
+    gearCardTitle: "Inventaire non consommable",
+    gear: [
+      { key: "hache", label: "Hache", category: "Arme", value: 1, expr: "1d8", equipped: true },
+      { key: "poignard", label: "Poignard", category: "Arme", value: 1, expr: "1d4+3", equipped: true },
+      { key: "armureCuir", label: "Armure de cuir souple", category: "Armure", value: 1, expr: "1d4", equipped: true },
+      { key: "pieges", label: "Pièges à loup", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "clochettes", label: "Clochettes", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "sifflets", label: "Sifflets de chasse", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "cordes", label: "Cordes renforcées", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "couverture", label: "Cape & couverture de bivouac", category: "Équipement", value: 1, expr: "", equipped: true }
     ],
     showSecondaryCard: true,
     secondaryCardTitle: "Tableau de chasse",
@@ -276,8 +295,27 @@ const CHARACTER_TEMPLATES = {
       { key: "ObeGobelin", label: "ObeGobelin", value: 1 },
       { key: "Bouquetin", label: "Bouquetin", value: 1 }
     ],
+    magicItems: [
+      { name: "Arc d'Aric", slot: "Arme", expr: "1d10+1", desc: "Arc enchanté (+1 aux dégâts, +3 Dextérité)", charges: 0, maxCharges: 0, rechargeOnScenario: false, equipped: true },
+      { name: "Anneau de foudre", slot: "Anneau", expr: "", desc: "À demander à Elaïth à chaque scénar", charges: 3, maxCharges: 3, rechargeOnScenario: true, equipped: true },
+      { name: "Anneau de Gang Bole", slot: "Anneau", expr: "", desc: "Flèche +2 dégâts, inesquivable", charges: 3, maxCharges: 3, rechargeOnScenario: true, equipped: true }
+    ],
     cond: "",
-    notes: ""
+    notes: "",
+    lore: {
+      backstory: "Née à la lisière des forêts profondes, Elara a appris très tôt l'art du pistage et de la survie. Accompagnée de son fidèle chien de chasse, elle met ses talents de trappeuse et d'archère au service des expéditions les plus périlleuses.",
+      appearance: "Regard perçant, cape de cuir patinée par les intempéries, arc d'Aric toujours à portée de main. Pragmatique, prudente et loyale envers ses compagnons de route.",
+      relations: "• Elaïth : allié mystique (recharge l'Anneau de foudre à chaque scénario)\n• Compagnons d'armes de la compagnie"
+    },
+    sessions: [
+      {
+        id: "scen-1",
+        title: "Les Pistes de la Forêt Sombre",
+        date: "Scénario 1",
+        rewards: "+35 XP · +350 PO",
+        summary: "Traque d'un ours géant et d'une bande de gobelins embusqués dans les ravins."
+      }
+    ]
   },
 
   vierge: {
@@ -285,6 +323,11 @@ const CHARACTER_TEMPLATES = {
     storageKey: "perso-v1",
     name: "NOUVEAU PERSONNAGE",
     subtitle: "Race · Classe · Carrière",
+    gender: "Non spécifié",
+    age: "25 ans",
+    height: "1m75",
+    weight: "70 kg",
+    rank: "Recrue",
     portrait: DEFAULT_AVATARS.ranger,
     theme: {
       preset: "forest",
@@ -295,44 +338,65 @@ const CHARACTER_TEMPLATES = {
       { key: "pv", label: "Points de vie", value: 15, max: 15, color: "--red", isHp: true, showBar: true },
       { key: "corr", label: "Corruption", value: 0, max: 100, color: "--pur", isHp: false, showBar: true },
       { key: "folie", label: "Folie", value: 0, max: 100, color: "--pur", isHp: false, showBar: true },
-      { key: "xp", label: "Expérience", value: 0, max: 0, color: "--acc", isHp: false, showBar: false },
+      { key: "xp", label: "Expérience", value: 350, max: 0, color: "--acc", isHp: false, showBar: false },
       { key: "or", label: "Or (po)", value: 50, max: 0, color: "--gold", isHp: false, showBar: false },
       { key: "chance", label: "Chance", value: 50, max: 0, color: "--acc", isHp: false, showBar: false }
     ],
     stats: [
-      { key: "Force", label: "Force", value: 50 },
-      { key: "Consti", label: "Consti.", value: 50 },
-      { key: "Intel", label: "Intel.", value: 50 },
-      { key: "Volonté", label: "Volonté", value: 50 },
-      { key: "Social", label: "Social", value: 50 },
-      { key: "Dextérité", label: "Dextérité", value: 50 },
-      { key: "Perception", label: "Perception", value: 50 }
+      { key: "Force", label: "Force", value: 50, bonus: 0 },
+      { key: "Consti", label: "Consti.", value: 50, bonus: 0 },
+      { key: "Intel", label: "Intel.", value: 50, bonus: 0 },
+      { key: "Volonté", label: "Volonté", value: 50, bonus: 0 },
+      { key: "Social", label: "Social", value: 50, bonus: 0 },
+      { key: "Dextérité", label: "Dextérité", value: 50, bonus: 0 },
+      { key: "Perception", label: "Perception", value: 50, bonus: 0 }
     ],
     weapons: [
       { name: "Arme principale", expr: "1d8" },
       { name: "Dague", expr: "1d4+1" },
       { name: "Initiative", expr: "1d10" }
     ],
+    skills: [
+      { name: "Éloquence", category: "Social", stat: "Social", bonus: 0, desc: "Convaincre, négocier et recueillir des informations" },
+      { name: "Athlétisme", category: "Corporel", stat: "Force", bonus: 0, desc: "Escalade, saut, nage et effort physique" },
+      { name: "Observation", category: "Utilitaire", stat: "Perception", bonus: 5, desc: "Repérer les détails cachés et les pièges" }
+    ],
     resources: [
       { key: "pouvoir1", name: "Capacité spéciale", desc: "Utilisable 3 fois par scénario", value: 3, max: 3, rechargeOnScenario: true }
     ],
     scenarioBtnLabel: "⟳ Nouveau scénario (recharge pouvoirs)",
     restBtnLabel: "☾ Repos : PV au max",
-    inventoryTitle: "Inventaire consommable",
-    itemsCardTitle: "Consommables",
+    inventoryTitle: "Inventaire & Équipement",
+    itemsCardTitle: "Inventaire consommable",
     items: [
       { key: "rations", label: "Rations", value: 5 },
       { key: "torches", label: "Torches", value: 3 },
-      { key: "potions", label: "Potions de soin", value: 1 },
-      { key: "cordes", label: "Corde (10m)", value: 1 }
+      { key: "potions", label: "Potions de soin", value: 1 }
+    ],
+    gearCardTitle: "Inventaire non consommable",
+    gear: [
+      { key: "armePrincipale", label: "Arme principale", category: "Arme", value: 1, expr: "1d8", equipped: true },
+      { key: "dague", label: "Dague", category: "Arme", value: 1, expr: "1d4+1", equipped: true },
+      { key: "armureCuir", label: "Armure de cuir", category: "Armure", value: 1, expr: "1d4", equipped: true },
+      { key: "cordes", label: "Corde (10m)", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "sacCouchage", label: "Sac de couchage", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "briquet", label: "Briquet à silex", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "outre", label: "Outre d'eau", category: "Équipement", value: 1, expr: "", equipped: true }
     ],
     showSecondaryCard: true,
     secondaryCardTitle: "Tableau de chasse & Hauts faits",
     chasse: [
       { key: "Boss", label: "Ennemis notables", value: 0 }
     ],
+    magicItems: [],
     cond: "",
-    notes: ""
+    notes: "",
+    lore: {
+      backstory: "",
+      appearance: "",
+      relations: ""
+    },
+    sessions: []
   },
 
   guerrier: {
@@ -340,6 +404,11 @@ const CHARACTER_TEMPLATES = {
     storageKey: "garrick-v1",
     name: "GARRICK VANE",
     subtitle: "Humain · Guerrier · Briseur de boucliers",
+    gender: "Masculin",
+    age: "34 ans",
+    height: "1m88",
+    weight: "96 kg",
+    rank: "Sergent",
     portrait: DEFAULT_AVATARS.warrior,
     theme: {
       preset: "crimson",
@@ -350,24 +419,30 @@ const CHARACTER_TEMPLATES = {
       { key: "pv", label: "Points de vie", value: 26, max: 26, color: "--red", isHp: true, showBar: true },
       { key: "corr", label: "Corruption", value: 2, max: 100, color: "--pur", isHp: false, showBar: true },
       { key: "folie", label: "Folie", value: 5, max: 100, color: "--pur", isHp: false, showBar: true },
-      { key: "xp", label: "Expérience", value: 220, max: 0, color: "--acc", isHp: false, showBar: false },
+      { key: "xp", label: "Expérience", value: 380, max: 0, color: "--acc", isHp: false, showBar: false },
       { key: "or", label: "Or (po)", value: 640, max: 0, color: "--gold", isHp: false, showBar: false },
       { key: "chance", label: "Chance", value: 45, max: 0, color: "--acc", isHp: false, showBar: false }
     ],
     stats: [
-      { key: "Force", label: "Force", value: 68 },
-      { key: "Consti", label: "Consti.", value: 65 },
-      { key: "Intel", label: "Intel.", value: 40 },
-      { key: "Volonté", label: "Volonté", value: 55 },
-      { key: "Social", label: "Social", value: 42 },
-      { key: "Dextérité", label: "Dextérité", value: 50 },
-      { key: "Perception", label: "Perception", value: 48 }
+      { key: "Force", label: "Force", value: 68, bonus: 0 },
+      { key: "Consti", label: "Consti.", value: 65, bonus: 0 },
+      { key: "Intel", label: "Intel.", value: 40, bonus: 0 },
+      { key: "Volonté", label: "Volonté", value: 55, bonus: 5 },
+      { key: "Social", label: "Social", value: 42, bonus: 0 },
+      { key: "Dextérité", label: "Dextérité", value: 50, bonus: 0 },
+      { key: "Perception", label: "Perception", value: 48, bonus: 0 }
     ],
     weapons: [
       { name: "Espadon runique", expr: "2d6+3" },
       { name: "Marteau de guerre", expr: "1d10+2" },
       { name: "Coup de bouclier", expr: "1d4+2" },
       { name: "Initiative", expr: "1d10+1" }
+    ],
+    skills: [
+      { name: "Intimidation", category: "Social", stat: "Social", bonus: 5, desc: "Faire plier l'adversaire par la prestance" },
+      { name: "Armes lourdes", category: "Corporel", stat: "Force", bonus: 10, desc: "Maniement de l'espadon et du marteau de guerre" },
+      { name: "Mur de bouclier", category: "Corporel", stat: "Consti", bonus: 10, desc: "Tenir la ligne et encaisser les charges" },
+      { name: "Tactique & Armurerie", category: "Utilitaire", stat: "Intel", bonus: 5, desc: "Entretien des armes et lecture du champ de bataille" }
     ],
     resources: [
       { key: "secondSouffle", name: "Second souffle", desc: "Récupère 1d6+2 PV en combat", value: 2, max: 2, rechargeOnScenario: true },
@@ -376,14 +451,21 @@ const CHARACTER_TEMPLATES = {
     ],
     scenarioBtnLabel: "⟳ Nouveau scénario (recharge postures & runes)",
     restBtnLabel: "☾ Repos : PV au max",
-    inventoryTitle: "Équipement & Trophées",
-    itemsCardTitle: "Consommables de campagne",
+    inventoryTitle: "Inventaire & Équipement",
+    itemsCardTitle: "Inventaire consommable",
     items: [
       { key: "rations", label: "Rations de fer", value: 6 },
       { key: "bandages", label: "Bandages & cataplasmes", value: 4 },
-      { key: "pierreAffuter", label: "Pierres à affûter", value: 3 },
       { key: "huileArmure", label: "Huile d'entretien", value: 2 },
       { key: "tordBoyaux", label: "Flasque de tord-boyaux", value: 2 }
+    ],
+    gearCardTitle: "Inventaire non consommable",
+    gear: [
+      { key: "marteauGuerre", label: "Marteau de guerre", category: "Arme", value: 1, expr: "1d10+2", equipped: true },
+      { key: "bouclierAcier", label: "Coup de bouclier", category: "Arme", value: 1, expr: "1d4+2", equipped: true },
+      { key: "armurePlates", label: "Demi-plate renforcée", category: "Armure", value: 1, expr: "1d6+2", equipped: true },
+      { key: "pierreAffuter", label: "Pierres à affûter", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "grappin", label: "Grappin & corde de chanvre", category: "Équipement", value: 1, expr: "", equipped: true }
     ],
     showSecondaryCard: true,
     secondaryCardTitle: "Tableau de chasse",
@@ -392,8 +474,18 @@ const CHARACTER_TEMPLATES = {
       { key: "Bandits", label: "Chefs brigands", value: 2 },
       { key: "Trolls", label: "Troll des collines", value: 1 }
     ],
+    magicItems: [
+      { name: "Espadon runique", slot: "Arme", expr: "2d6+3", desc: "Lame gravée de runes naines (+3 aux dégâts)", charges: 0, maxCharges: 0, rechargeOnScenario: false, equipped: true },
+      { name: "Talisman du Bastion", slot: "Amulette", expr: "", desc: "+5 en Volonté contre la peur, 2 absorptions/scénario", charges: 2, maxCharges: 2, rechargeOnScenario: true, equipped: true }
+    ],
     cond: "",
-    notes: ""
+    notes: "",
+    lore: {
+      backstory: "Ancien sergent d'une compagnie franche des Marches du Nord, Garrick parcourt les routes comme mercenaire et garde du corps.",
+      appearance: "Carrure massive, cicatrice sur la joue gauche, armure de plates cabossée mais soigneusement entretenue.",
+      relations: "• Guilde des Mercenaires du Bastion\n• Forgeron Thorek (allié)"
+    },
+    sessions: []
   },
 
   mage: {
@@ -401,6 +493,11 @@ const CHARACTER_TEMPLATES = {
     storageKey: "lyra-v1",
     name: "LYRA VALEN",
     subtitle: "Haute-elfe · Mage · Érudite des Arcanes",
+    gender: "Féminin",
+    age: "112 ans",
+    height: "1m76",
+    weight: "55 kg",
+    rank: "Magistère",
     portrait: DEFAULT_AVATARS.mage,
     theme: {
       preset: "arcane",
@@ -411,24 +508,31 @@ const CHARACTER_TEMPLATES = {
       { key: "pv", label: "Points de vie", value: 14, max: 14, color: "--red", isHp: true, showBar: true },
       { key: "corr", label: "Corruption", value: 12, max: 100, color: "--pur", isHp: false, showBar: true },
       { key: "folie", label: "Folie", value: 18, max: 100, color: "--pur", isHp: false, showBar: true },
-      { key: "xp", label: "Expérience", value: 310, max: 0, color: "--acc", isHp: false, showBar: false },
+      { key: "xp", label: "Expérience", value: 410, max: 0, color: "--acc", isHp: false, showBar: false },
       { key: "or", label: "Or (po)", value: 1120, max: 0, color: "--gold", isHp: false, showBar: false },
       { key: "chance", label: "Chance", value: 55, max: 0, color: "--acc", isHp: false, showBar: false }
     ],
     stats: [
-      { key: "Force", label: "Force", value: 35 },
-      { key: "Consti", label: "Consti.", value: 42 },
-      { key: "Intel", label: "Intel.", value: 78 },
-      { key: "Volonté", label: "Volonté", value: 72 },
-      { key: "Social", label: "Social", value: 58 },
-      { key: "Dextérité", label: "Dextérité", value: 60 },
-      { key: "Perception", label: "Perception", value: 65 }
+      { key: "Force", label: "Force", value: 35, bonus: 0 },
+      { key: "Consti", label: "Consti.", value: 42, bonus: 0 },
+      { key: "Intel", label: "Intel.", value: 70, bonus: 5 },
+      { key: "Volonté", label: "Volonté", value: 68, bonus: 0 },
+      { key: "Social", label: "Social", value: 58, bonus: 0 },
+      { key: "Dextérité", label: "Dextérité", value: 60, bonus: 0 },
+      { key: "Perception", label: "Perception", value: 65, bonus: 0 }
     ],
     weapons: [
       { name: "Trait de feu", expr: "2d8+2" },
       { name: "Éclair arcanique", expr: "1d12+4" },
       { name: "Bâton runique", expr: "1d6" },
       { name: "Initiative", expr: "1d10+3" }
+    ],
+    skills: [
+      { name: "Étiquette & Diplomatie", category: "Social", stat: "Social", bonus: 5, desc: "Codes de la haute société et des cercles érudits" },
+      { name: "Esquive & Sang-froid", category: "Corporel", stat: "Dextérité", bonus: 5, desc: "Se dégager d'une mêlée pour incanter" },
+      { name: "Canalisation arcanique", category: "Utilitaire", stat: "Intel", bonus: 10, desc: "Maîtrise des vents de magie et incantations" },
+      { name: "Savoir ancien & Runes", category: "Utilitaire", stat: "Intel", bonus: 10, desc: "Déchiffrer les grimoires et identifier les reliques" },
+      { name: "Sens de l'Éther", category: "Utilitaire", stat: "Perception", bonus: 5, desc: "Détecter les auras magiques et la corruption" }
     ],
     resources: [
       { key: "sceauAether", name: "Sceau d'Éther", desc: "Relance un jet de canalisation magique", value: 3, max: 3, rechargeOnScenario: true },
@@ -437,14 +541,22 @@ const CHARACTER_TEMPLATES = {
     ],
     scenarioBtnLabel: "⟳ Nouveau scénario (méditation arcanique)",
     restBtnLabel: "☾ Repos : PV au max",
-    inventoryTitle: "Composants & Savoirs",
-    itemsCardTitle: "Composants & Foles",
+    inventoryTitle: "Inventaire & Équipement",
+    itemsCardTitle: "Inventaire consommable",
     items: [
       { key: "poudreArgent", label: "Poudre d'argent", value: 5 },
       { key: "encens", label: "Encens de lune", value: 4 },
       { key: "parchemins", label: "Parchemins vierges", value: 6 },
       { key: "potionMana", label: "Élixir de clarté", value: 2 },
       { key: "rations", label: "Rations elfiques", value: 5 }
+    ],
+    gearCardTitle: "Inventaire non consommable",
+    gear: [
+      { key: "togeArcanique", label: "Toge de protection runique", category: "Armure", value: 1, expr: "1d4", equipped: true },
+      { key: "grimoire", label: "Grimoire de la Tour d'Argent", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "plumeEncre", label: "Nécessaire de calligraphie", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "loupeRunique", label: "Loupe d'expertise", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "lanterne", label: "Lanterne sourde", category: "Équipement", value: 1, expr: "", equipped: true }
     ],
     showSecondaryCard: true,
     secondaryCardTitle: "Créatures étudiées",
@@ -453,7 +565,18 @@ const CHARACTER_TEMPLATES = {
       { key: "Demons", label: "Démon mineur", value: 1 },
       { key: "Artefacts", label: "Reliques identifiées", value: 4 }
     ],
+    magicItems: [
+      { name: "Bâton runique", slot: "Bâton", expr: "1d6", desc: "Bâton de Pierre de Lune (+5 aux tests d'Intelligence)", charges: 0, maxCharges: 0, rechargeOnScenario: false, equipped: true },
+      { name: "Anneau du Voile", slot: "Anneau", expr: "", desc: "Projette un bouclier cristallin (2 charges/scénar)", charges: 2, maxCharges: 2, rechargeOnScenario: true, equipped: true },
+      { name: "Boussole d'Éther", slot: "Relique", expr: "", desc: "Pointe vers la source de magie la plus proche (1/scénar)", charges: 1, maxCharges: 1, rechargeOnScenario: true, equipped: false }
+    ],
     cond: "",
-    notes: ""
+    notes: "",
+    lore: {
+      backstory: "Diplômée de la Tour d'Argent, Lyra parcours le monde à la recherche de reliques anciennes et de grimoires oubliés.",
+      appearance: "Toge bleu nuit brodée de fils d'argent, bâton serti d'une pierre de lune.",
+      relations: "• Ordre des Érudits de la Tour d'Argent"
+    },
+    sessions: []
   }
 };

@@ -19,6 +19,27 @@ function showToast(msg) {
   t._timer = setTimeout(() => t.classList.remove("show"), 2800);
 }
 
+function getCharTotalXp(ch) {
+  const xpVital = (ch?.vitals || []).find(v => v.key === "xp");
+  return Math.max(350, Number(xpVital?.value) || 350);
+}
+
+function getCharStatsBaseSum(ch, excludeIdx = -1) {
+  return (ch?.stats || []).reduce((acc, st, i) => {
+    if (i === excludeIdx) return acc;
+    return acc + Math.max(30, Math.min(70, Number(st.value) || 50));
+  }, 0);
+}
+
+function updateStatsBudgetUI() {
+  const el = $("#stats-xp-budget");
+  if (!el || !currentChar) return;
+  const sum = getCharStatsBaseSum(currentChar);
+  const xp = getCharTotalXp(currentChar);
+  const rem = xp - sum;
+  el.innerHTML = `Total des caractéristiques de base : <strong style="color:${rem < 0 ? "#e8786b" : "var(--gold)"}">${sum} / ${xp} XP</strong> (${rem >= 0 ? `Reste à répartir : <b>${rem}</b> pts` : `Dépassement : ${-rem} pts`})`;
+}
+
 function loadRoster() {
   try {
     const raw = localStorage.getItem(ROSTER_STORAGE_KEY);
@@ -40,6 +61,111 @@ function loadRoster() {
     ];
     saveRoster();
   }
+
+  // Normaliser les contraintes (XP >= 350, caractéristiques 30-70 + bonus, charges d'objets magiques)
+  roster.forEach(ch => {
+    (ch.vitals || []).forEach(v => {
+      if (v.key === "xp" && (Number(v.value) || 0) < 350) v.value = 350;
+    });
+    (ch.stats || []).forEach(st => {
+      if (st.bonus === undefined) {
+        if (st.value > 70) {
+          st.bonus = st.value - 70;
+          st.value = 70;
+        } else if (st.value < 30) {
+          st.bonus = st.value - 30;
+          st.value = 30;
+        } else {
+          st.bonus = 0;
+        }
+      }
+      st.value = Math.max(30, Math.min(70, Number(st.value) || 50));
+    });
+    // Vérifier que la somme des caractéristiques de base ne dépasse pas l'XP totale
+    const xpVal = getCharTotalXp(ch);
+    let statSum = getCharStatsBaseSum(ch);
+    if (statSum > xpVal) {
+      let excess = statSum - xpVal;
+      for (let i = ch.stats.length - 1; i >= 0 && excess > 0; i--) {
+        const st = ch.stats[i];
+        const canReduce = Math.max(0, st.value - 30);
+        const drop = Math.min(canReduce, excess);
+        if (drop > 0) {
+          st.value -= drop;
+          st.bonus = (Number(st.bonus) || 0) + drop;
+          excess -= drop;
+        }
+      }
+    }
+    if (Array.isArray(ch.magicItems)) {
+      ch.magicItems.forEach(m => {
+        if (m.maxCharges === undefined) m.maxCharges = 0;
+        if (m.charges === undefined) m.charges = m.maxCharges;
+        if (m.rechargeOnScenario === undefined) m.rechargeOnScenario = m.maxCharges > 0;
+      });
+    }
+    if (!Array.isArray(ch.skills)) {
+      if (ch.id === "elara-lorens") ch.skills = structuredClone(CHARACTER_TEMPLATES.elara.skills);
+      else if (ch.id === "garrick-vane") ch.skills = structuredClone(CHARACTER_TEMPLATES.guerrier.skills);
+      else if (ch.id === "lyra-valen") ch.skills = structuredClone(CHARACTER_TEMPLATES.mage.skills);
+      else ch.skills = [];
+    }
+    ch.skills.forEach(sk => {
+      if (!["Social", "Corporel", "Utilitaire"].includes(sk.category)) {
+        if (sk.stat === "Social" || sk.stat === "Volonté") sk.category = "Social";
+        else if (sk.stat === "Force" || sk.stat === "Consti" || sk.stat === "Dextérité") sk.category = "Corporel";
+        else sk.category = "Utilitaire";
+      }
+    });
+    if (!Array.isArray(ch.gear)) {
+      if (ch.id === "elara-lorens") ch.gear = structuredClone(CHARACTER_TEMPLATES.elara.gear);
+      else if (ch.id === "garrick-vane") ch.gear = structuredClone(CHARACTER_TEMPLATES.guerrier.gear);
+      else if (ch.id === "lyra-valen") ch.gear = structuredClone(CHARACTER_TEMPLATES.mage.gear);
+      else ch.gear = [];
+    }
+    const tplMatch = ch.id === "elara-lorens" ? CHARACTER_TEMPLATES.elara
+      : ch.id === "garrick-vane" ? CHARACTER_TEMPLATES.guerrier
+      : ch.id === "lyra-valen" ? CHARACTER_TEMPLATES.mage
+      : null;
+    if (Array.isArray(ch.magicItems)) {
+      ch.magicItems.forEach(m => {
+        if (m.expr === undefined) {
+          const wMatch = (ch.weapons || []).find(w => (w.name || "").toLowerCase() === (m.name || "").toLowerCase());
+          m.expr = wMatch ? wMatch.expr : "";
+        }
+      });
+    }
+    if (Array.isArray(ch.gear)) {
+      if (tplMatch) {
+        tplMatch.gear.forEach(tg => {
+          if ((tg.expr || tg.category === "Armure") && !ch.gear.some(g => g.key === tg.key || (g.label || "").toLowerCase() === tg.label.toLowerCase())) {
+            ch.gear.unshift(structuredClone(tg));
+          }
+        });
+      }
+      ch.gear.forEach(g => {
+        if (g.expr === undefined) {
+          const wMatch = (ch.weapons || []).find(w => (w.name || "").toLowerCase() === (g.label || "").toLowerCase());
+          g.expr = wMatch ? wMatch.expr : "";
+        }
+        if (!["Équipement", "Arme", "Armure"].includes(g.category)) {
+          if ((g.expr || "").trim()) g.category = "Arme";
+          else if (/armure|plate|cotte|cuirasse|casque/i.test(g.label || "")) g.category = "Armure";
+          else g.category = "Équipement";
+        }
+        if (g.category === "Armure" && !(g.expr || "").trim()) {
+          const tplG = tplMatch?.gear?.find(tg => tg.key === g.key || (tg.label || "").toLowerCase() === (g.label || "").toLowerCase());
+          g.expr = tplG?.expr || "1d4";
+        }
+        if (g.equipped === undefined) g.equipped = true;
+      });
+    }
+    if (ch.gender === undefined) ch.gender = tplMatch?.gender || "";
+    if (ch.age === undefined) ch.age = tplMatch?.age || "";
+    if (ch.height === undefined) ch.height = tplMatch?.height || "";
+    if (ch.weight === undefined) ch.weight = tplMatch?.weight || "";
+    if (ch.rank === undefined) ch.rank = tplMatch?.rank || "";
+  });
 
   const savedActiveId = localStorage.getItem(ACTIVE_ID_KEY);
   currentChar = roster.find(c => c.id === savedActiveId) || roster[0];
@@ -133,6 +259,11 @@ function renderEditor() {
   $("#char-name").value = currentChar.name || "";
   $("#char-subtitle").value = currentChar.subtitle || "";
   $("#char-storage-key").value = currentChar.storageKey || "";
+  $("#char-gender").value = currentChar.gender || "";
+  $("#char-age").value = currentChar.age || "";
+  $("#char-height").value = currentChar.height || "";
+  $("#char-weight").value = currentChar.weight || "";
+  $("#char-rank").value = currentChar.rank || "";
   $("#portrait-img").src = currentChar.portrait || DEFAULT_AVATARS.ranger;
   $("#theme-preset").value = currentChar.theme?.preset || "forest";
   $("#theme-mode").value = currentChar.theme?.defaultMode || "auto";
@@ -141,18 +272,30 @@ function renderEditor() {
   renderVitalsList();
   renderStatsList();
   renderWeaponsList();
+  renderSkillsList();
   renderResourcesList();
 
   $("#scenar-btn-label").value = currentChar.scenarioBtnLabel || "⟳ Nouveau scénario (recharge pouvoirs)";
   $("#rest-btn-label").value = currentChar.restBtnLabel || "☾ Repos : PV au max";
 
-  $("#inv-section-title").value = currentChar.inventoryTitle || "Inventaire consommable";
-  $("#items-card-title").value = currentChar.itemsCardTitle || "Consommables";
+  $("#inv-section-title").value = currentChar.inventoryTitle || "Inventaire & Équipement";
+  $("#items-card-title").value = currentChar.itemsCardTitle || "Inventaire consommable";
+  $("#gear-card-title").value = currentChar.gearCardTitle || "Inventaire non consommable";
   $("#show-secondary-card").checked = currentChar.showSecondaryCard !== false;
   $("#secondary-card-title").value = currentChar.secondaryCardTitle || "Tableau de chasse";
 
   renderItemsList();
+  renderGearList();
   renderChasseList();
+  renderMagicItemsList();
+  renderSessionsList();
+
+  if (!currentChar.lore) {
+    currentChar.lore = { backstory: "", appearance: "", relations: "" };
+  }
+  $("#lore-backstory").value = currentChar.lore.backstory || "";
+  $("#lore-appearance").value = currentChar.lore.appearance || "";
+  $("#lore-relations").value = currentChar.lore.relations || "";
 
   $("#char-cond").value = currentChar.cond || "";
   $("#char-notes").value = currentChar.notes || "";
@@ -205,8 +348,8 @@ function renderVitalsList() {
   container.innerHTML = currentChar.vitals.map((v, idx) => `
     <div class="list-row" data-idx="${idx}">
       <input type="text" class="grow" data-field="label" value="${escapeHtml(v.label)}" placeholder="Nom du compteur (ex: Points de vie)">
-      <label style="font-size:11px;color:var(--mute)">Val.
-        <input type="number" class="num-input" data-field="value" value="${v.value}">
+      <label style="font-size:11px;color:var(--mute)">${v.key === "xp" ? "Val. (min 350)" : "Val."}
+        <input type="number" class="num-input" data-field="value" value="${v.key === "xp" ? Math.max(350, v.value) : v.value}" ${v.key === "xp" ? 'min="350"' : ""}>
       </label>
       <label style="font-size:11px;color:var(--mute)">Max (0=aucun)
         <input type="number" class="num-input" data-field="max" value="${v.max || 0}">
@@ -223,28 +366,69 @@ function renderVitalsList() {
     </div>
   `).join("");
 
-  bindListEvents(container, currentChar.vitals, renderVitalsList);
+  bindListEvents(container, currentChar.vitals, renderVitalsList, (item, field, val, row) => {
+    if (field === "value" && item.key === "xp") {
+      const minXp = Math.max(350, getCharStatsBaseSum(currentChar));
+      if (val < minXp) {
+        val = minXp;
+      }
+      setTimeout(updateStatsBudgetUI, 0);
+      return val;
+    }
+  });
 }
 
 function renderStatsList() {
   const container = $("#stats-list");
-  container.innerHTML = currentChar.stats.map((st, idx) => `
+  updateStatsBudgetUI();
+  container.innerHTML = currentChar.stats.map((st, idx) => {
+    const base = Math.max(30, Math.min(70, Number(st.value) || 50));
+    const bonus = Number(st.bonus) || 0;
+    const tot = base + bonus;
+    return `
     <div class="list-row" data-idx="${idx}">
       <input type="text" class="grow" data-field="label" value="${escapeHtml(st.label)}" placeholder="Libellé affiché (ex: Consti.)">
-      <label style="font-size:11px;color:var(--mute)">Score (/100)
-        <input type="number" class="num-input" data-field="value" value="${st.value}" min="1" max="100">
+      <label style="font-size:11px;color:var(--mute)">Base (30–70)
+        <input type="number" class="num-input" data-field="value" value="${base}" min="30" max="70">
       </label>
+      <label style="font-size:11px;color:var(--mute)" title="Bonus ponctuel lié à un objet ou consommable">Bonus (+/-)
+        <input type="number" class="num-input" data-field="bonus" value="${bonus}" min="-50" max="50" style="color:var(--gold)">
+      </label>
+      <span class="stat-tot-badge" style="min-width:68px;text-align:center;font-size:12px;color:var(--mute)">Total : <b style="color:var(--ink);font-size:14px">${tot}</b></span>
       <button class="icon-btn" data-action="up" title="Monter" ${idx === 0 ? "disabled" : ""}>↑</button>
       <button class="icon-btn" data-action="down" title="Descendre" ${idx === currentChar.stats.length - 1 ? "disabled" : ""}>↓</button>
       <button class="icon-btn del" data-action="del" title="Supprimer">×</button>
     </div>
-  `).join("");
+  `}).join("");
 
-  bindListEvents(container, currentChar.stats, renderStatsList, (item, field, val) => {
+  bindListEvents(container, currentChar.stats, renderStatsList, (item, field, val, row) => {
+    const idx = Number(row?.dataset?.idx ?? -1);
     if (field === "label") {
       item.label = val;
       item.key = val.replace(/\./g, "").trim() || ("Stat" + Date.now());
+      renderSkillsList();
     }
+    if (field === "value") {
+      const totalXp = getCharTotalXp(currentChar);
+      const otherSum = getCharStatsBaseSum(currentChar, idx);
+      const maxAllowed = Math.min(70, Math.max(30, totalXp - otherSum));
+      if (val > maxAllowed) {
+        val = maxAllowed;
+        const inp = row?.querySelector("input[data-field='value']");
+        if (inp) inp.value = val;
+        if (maxAllowed < 70) {
+          showToast(`Maximum atteint : le total des caractéristiques ne peut pas dépasser l'Expérience (${totalXp} XP).`);
+        }
+      } else if (val < 30) {
+        val = 30;
+      }
+    }
+    const nextBase = field === "value" ? val : (Number(item.value) || 50);
+    const nextBon = field === "bonus" ? val : (Number(item.bonus) || 0);
+    const badge = row?.querySelector(".stat-tot-badge b");
+    if (badge) badge.textContent = nextBase + nextBon;
+    setTimeout(updateStatsBudgetUI, 0);
+    return val;
   });
 }
 
@@ -261,6 +445,45 @@ function renderWeaponsList() {
   `).join("");
 
   bindListEvents(container, currentChar.weapons, renderWeaponsList);
+}
+
+function renderSkillsList() {
+  const container = $("#skills-list");
+  if (!container) return;
+  if (!Array.isArray(currentChar.skills)) {
+    currentChar.skills = [];
+  }
+  const statOptions = [
+    { key: "", label: "(Passif / Sans jet)" },
+    ...(currentChar.stats || []).map(st => ({ key: st.key, label: st.label || st.key }))
+  ];
+
+  const catOptions = [
+    { key: "Social", label: "🗣 Social" },
+    { key: "Corporel", label: "💪 Corporel" },
+    { key: "Utilitaire", label: "🛠 Utilitaire" }
+  ];
+
+  container.innerHTML = currentChar.skills.map((sk, idx) => `
+    <div class="list-row" data-idx="${idx}">
+      <input type="text" style="width:160px;font-weight:700" data-field="name" value="${escapeHtml(sk.name || "")}" placeholder="Nom (ex: Pistage)">
+      <select data-field="category" title="Catégorie de la compétence">
+        ${catOptions.map(c => `<option value="${c.key}" ${(sk.category || "Utilitaire") === c.key ? "selected" : ""}>${c.label}</option>`).join("")}
+      </select>
+      <select data-field="stat" title="Caractéristique associée">
+        ${statOptions.map(o => `<option value="${escapeHtml(o.key)}" ${sk.stat === o.key ? "selected" : ""}>${escapeHtml(o.label)}</option>`).join("")}
+      </select>
+      <label style="font-size:11px;color:var(--mute)" title="Bonus ou malus au jet de compétence">Bonus (+/-)
+        <input type="number" class="num-input" data-field="bonus" value="${Number(sk.bonus) || 0}" min="-50" max="50" style="color:var(--gold)">
+      </label>
+      <input type="text" class="grow" data-field="desc" value="${escapeHtml(sk.desc || "")}" placeholder="Description / effets de la compétence…">
+      <button class="icon-btn" data-action="up" title="Monter" ${idx === 0 ? "disabled" : ""}>↑</button>
+      <button class="icon-btn" data-action="down" title="Descendre" ${idx === currentChar.skills.length - 1 ? "disabled" : ""}>↓</button>
+      <button class="icon-btn del" data-action="del" title="Supprimer">×</button>
+    </div>
+  `).join("");
+
+  bindListEvents(container, currentChar.skills, renderSkillsList, null, "play");
 }
 
 function renderResourcesList() {
@@ -289,7 +512,7 @@ function renderItemsList() {
   const container = $("#items-list");
   container.innerHTML = currentChar.items.map((it, idx) => `
     <div class="list-row" data-idx="${idx}">
-      <input type="text" class="grow" data-field="label" value="${escapeHtml(it.label)}" placeholder="Nom de l'objet (ex: Rations)">
+      <input type="text" class="grow" data-field="label" value="${escapeHtml(it.label)}" placeholder="Nom du consommable (ex: Rations)">
       <label style="font-size:11px;color:var(--mute)">Qté
         <input type="number" class="num-input" data-field="value" value="${it.value}" min="0">
       </label>
@@ -299,7 +522,48 @@ function renderItemsList() {
     </div>
   `).join("");
 
-  bindListEvents(container, currentChar.items, renderItemsList);
+  bindListEvents(container, currentChar.items, renderItemsList, null, "play");
+}
+
+function renderGearList() {
+  const container = $("#gear-list");
+  if (!container) return;
+  if (!Array.isArray(currentChar.gear)) {
+    currentChar.gear = [];
+  }
+  const catOptions = [
+    { key: "Équipement", label: "🎒 Équipement" },
+    { key: "Arme", label: "⚔ Arme" },
+    { key: "Armure", label: "🛡 Armure" }
+  ];
+  container.innerHTML = currentChar.gear.map((g, idx) => `
+    <div class="list-row" data-idx="${idx}">
+      <input type="text" class="grow" data-field="label" value="${escapeHtml(g.label)}" placeholder="Nom de l'objet (ex: Hache, Demi-plate, Corde 10m)">
+      <select data-field="category" title="Catégorie de l'objet non consommable">
+        ${catOptions.map(c => `<option value="${c.key}" ${(g.category || (g.expr ? "Arme" : "Équipement")) === c.key ? "selected" : ""}>${c.label}</option>`).join("")}
+      </select>
+      <label style="font-size:11px;color:var(--mute)" title="Si c'est une arme ou une armure, indiquez son jet de dés (ex: 1d8, 1d4) pour l'afficher dans Dés & armes lorsqu'elle est équipée">Dés (arme/armure)
+        <input type="text" style="width:86px;text-align:center;font-weight:700" data-field="expr" value="${escapeHtml(g.expr || "")}" placeholder="ex: 1d8">
+      </label>
+      <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer" title="Objet, arme ou armure équipé(e) (apparaît dans Dés & armes)">
+        <input type="checkbox" data-field="equipped" ${g.equipped !== false ? "checked" : ""}> Équipé
+      </label>
+      <button class="icon-btn" data-action="up" title="Monter" ${idx === 0 ? "disabled" : ""}>↑</button>
+      <button class="icon-btn" data-action="down" title="Descendre" ${idx === currentChar.gear.length - 1 ? "disabled" : ""}>↓</button>
+      <button class="icon-btn del" data-action="del" title="Supprimer">×</button>
+    </div>
+  `).join("");
+
+  bindListEvents(container, currentChar.gear, renderGearList, (item, field, val, row) => {
+    if (field === "category") {
+      if ((val === "Armure" || val === "Arme") && !(item.expr || "").trim()) {
+        item.expr = val === "Armure" ? "1d4" : "1d6";
+        const exprInp = row?.querySelector("input[data-field='expr']");
+        if (exprInp) exprInp.value = item.expr;
+      }
+    }
+    return val;
+  }, "play");
 }
 
 function renderChasseList() {
@@ -321,22 +585,86 @@ function renderChasseList() {
       item.label = val;
       item.key = val || ("Entree_" + Date.now());
     }
-  });
+  }, "lore");
 }
 
-function bindListEvents(container, arr, rerenderFn, customSetter) {
+function renderMagicItemsList() {
+  const container = $("#magic-items-list");
+  if (!container) return;
+  if (!Array.isArray(currentChar.magicItems)) {
+    currentChar.magicItems = currentChar.id === "elara-lorens"
+      ? structuredClone(CHARACTER_TEMPLATES.elara.magicItems)
+      : [];
+  }
+  container.innerHTML = currentChar.magicItems.map((m, idx) => `
+    <div class="list-row" data-idx="${idx}">
+      <input type="text" style="width:145px;font-weight:700" data-field="name" value="${escapeHtml(m.name || "")}" placeholder="Nom (ex: Arc d'Aric)">
+      <input type="text" style="width:90px" data-field="slot" value="${escapeHtml(m.slot || "")}" placeholder="Type (Arme…)">
+      <input type="text" style="width:86px;text-align:center;font-weight:700" data-field="expr" value="${escapeHtml(m.expr || "")}" placeholder="Jet (1d10+1)" title="Jet de dés si équipé (ex: 1d10+1)">
+      <input type="text" class="grow" data-field="desc" value="${escapeHtml(m.desc || "")}" placeholder="Effets / propriétés magiques…">
+      <label style="font-size:11px;color:var(--mute)" title="Charges actuelles">Act.
+        <input type="number" style="width:50px;text-align:center" data-field="charges" value="${m.charges ?? m.maxCharges ?? 0}" min="0" max="20">
+      </label>
+      <label style="font-size:11px;color:var(--mute)" title="Charges max par scénario (0 = objet passif sans charges)">Max
+        <input type="number" style="width:50px;text-align:center" data-field="maxCharges" value="${m.maxCharges || 0}" min="0" max="20">
+      </label>
+      <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer" title="Se recharge au clic sur Nouveau scénario">
+        <input type="checkbox" data-field="rechargeOnScenario" ${m.rechargeOnScenario !== false ? "checked" : ""}> ⟳ scénar.
+      </label>
+      <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer" title="Objet équipé">
+        <input type="checkbox" data-field="equipped" ${m.equipped !== false ? "checked" : ""}> Équipé
+      </label>
+      <button class="icon-btn" data-action="up" title="Monter" ${idx === 0 ? "disabled" : ""}>↑</button>
+      <button class="icon-btn" data-action="down" title="Descendre" ${idx === currentChar.magicItems.length - 1 ? "disabled" : ""}>↓</button>
+      <button class="icon-btn del" data-action="del" title="Supprimer">×</button>
+    </div>
+  `).join("");
+
+  bindListEvents(container, currentChar.magicItems, renderMagicItemsList, (item, field, val) => {
+    if (field === "maxCharges" && (item.charges === undefined || item.charges > val || item.maxCharges === 0)) {
+      item.charges = val;
+    }
+    return val;
+  }, "play");
+}
+
+function renderSessionsList() {
+  const container = $("#sessions-list");
+  if (!container) return;
+  if (!Array.isArray(currentChar.sessions)) {
+    currentChar.sessions = [];
+  }
+  container.innerHTML = currentChar.sessions.map((s, idx) => `
+    <div class="list-row" data-idx="${idx}" style="flex-direction:column;align-items:stretch;gap:6px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="text" class="grow" style="font-weight:700" data-field="title" value="${escapeHtml(s.title || "")}" placeholder="Nom du scénario (ex: Les Ombres de Bois-Maudit)">
+        <input type="text" style="width:140px" data-field="date" value="${escapeHtml(s.date || "")}" placeholder="Date / Scénario #">
+        <input type="text" style="width:160px" data-field="rewards" value="${escapeHtml(s.rewards || "")}" placeholder="Gains (+XP, +PO…)">
+        <button class="icon-btn" data-action="up" title="Monter" ${idx === 0 ? "disabled" : ""}>↑</button>
+        <button class="icon-btn" data-action="down" title="Descendre" ${idx === currentChar.sessions.length - 1 ? "disabled" : ""}>↓</button>
+        <button class="icon-btn del" data-action="del" title="Supprimer">×</button>
+      </div>
+      <textarea rows="2" data-field="summary" placeholder="Résumé du scénario, faits marquants, PNJ rencontrés…" style="width:100%;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 8px;resize:vertical">${escapeHtml(s.summary || "")}</textarea>
+    </div>
+  `).join("");
+
+  bindListEvents(container, currentChar.sessions, renderSessionsList, null, "sessions");
+}
+
+function bindListEvents(container, arr, rerenderFn, customSetter, previewTabHint = null) {
   container.querySelectorAll(".list-row").forEach(row => {
     const idx = Number(row.dataset.idx);
-    row.querySelectorAll("input, select").forEach(inp => {
+    row.querySelectorAll("input, select, textarea").forEach(inp => {
       inp.addEventListener("input", e => {
         const field = e.target.dataset.field;
         if (!field) return;
         let val = e.target.type === "checkbox" ? e.target.checked : e.target.type === "number" ? Number(e.target.value) : e.target.value;
         if (customSetter) {
-          customSetter(arr[idx], field, val);
+          const maybeVal = customSetter(arr[idx], field, val, row);
+          if (maybeVal !== undefined) val = maybeVal;
         }
         arr[idx][field] = val;
-        onCharUpdated();
+        onCharUpdated(false, previewTabHint);
       });
     });
 
@@ -351,33 +679,52 @@ function bindListEvents(container, arr, rerenderFn, customSetter) {
           [arr[idx + 1], arr[idx]] = [arr[idx], arr[idx + 1]];
         }
         rerenderFn();
-        onCharUpdated();
+        onCharUpdated(true, previewTabHint);
       });
     });
   });
 }
 
 // ---- Mise à jour & Aperçu en direct
-function onCharUpdated(immediate = false) {
+function onCharUpdated(immediate = false, forceSheetTab = null) {
   saveRoster();
   renderRosterSelect();
-  updatePreview(immediate);
+  updatePreview(immediate, forceSheetTab);
 }
 
-function updatePreview(immediate = false) {
+function updatePreview(immediate = false, forceSheetTab = null) {
   clearTimeout(previewTimer);
   const run = () => {
     if (!currentChar) return;
-    // Supprimer la sauvegarde temporaire de l'aperçu dans localStorage pour refléter les valeurs de l'éditeur en direct
     try {
       localStorage.removeItem(currentChar.storageKey);
     } catch (e) {}
-    const html = generateStandaloneHTML(currentChar);
     const frame = $("#preview-frame");
+    let prevScrollY = 0;
+    let activeSheetTab = forceSheetTab || "play";
+    try {
+      if (frame.contentWindow) {
+        prevScrollY = frame.contentWindow.scrollY || 0;
+      }
+      if (!forceSheetTab && frame.contentDocument) {
+        const activeBtn = frame.contentDocument.querySelector(".sheet-tab.active");
+        if (activeBtn && activeBtn.dataset.sheetTab) {
+          activeSheetTab = activeBtn.dataset.sheetTab;
+        }
+      }
+    } catch (e) {}
+    const html = generateStandaloneHTML(currentChar, true, activeSheetTab);
+    frame.onload = () => {
+      try {
+        if (prevScrollY > 0 && frame.contentWindow) {
+          frame.contentWindow.scrollTo(0, prevScrollY);
+        }
+      } catch (e) {}
+    };
     frame.srcdoc = html;
   };
   if (immediate) run();
-  else previewTimer = setTimeout(run, 180);
+  else previewTimer = setTimeout(run, 120);
 }
 
 // ---- Redimensionnement & Compression du Portrait en Base64 autonome
@@ -499,6 +846,13 @@ document.addEventListener("DOMContentLoaded", () => {
       $$(".tab-content").forEach(c => c.classList.remove("active"));
       btn.classList.add("active");
       $("#" + btn.dataset.tab).classList.add("active");
+      // Basculer automatiquement l'onglet de la fiche dans l'aperçu
+      const frame = $("#preview-frame");
+      try {
+        if (frame.contentWindow && frame.contentWindow.switchSheetTab) {
+          frame.contentWindow.switchSheetTab(btn.dataset.tab === "tab-lore" ? "lore" : "play");
+        }
+      } catch (e) {}
     });
   });
 
@@ -531,6 +885,19 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#char-storage-key").addEventListener("input", e => {
     currentChar.storageKey = e.target.value.trim() || (slugify(currentChar.name) + "-v1");
     onCharUpdated();
+  });
+
+  [
+    ["#char-gender", "gender"],
+    ["#char-age", "age"],
+    ["#char-height", "height"],
+    ["#char-weight", "weight"],
+    ["#char-rank", "rank"]
+  ].forEach(([sel, key]) => {
+    $(sel)?.addEventListener("input", e => {
+      currentChar[key] = e.target.value;
+      onCharUpdated();
+    });
   });
 
   $("#portrait-file").addEventListener("change", e => processPortraitFile(e.target.files[0]));
@@ -570,24 +937,59 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   $("#add-stat-btn").addEventListener("click", () => {
-    currentChar.stats.push({ key: "Nouvelle", label: "Nouvelle", value: 50 });
+    const totalXp = getCharTotalXp(currentChar);
+    const curSum = getCharStatsBaseSum(currentChar);
+    if (curSum + 30 > totalXp) {
+      showToast(`Impossible d'ajouter une caractéristique : il faut au moins 30 XP disponibles (Actuel : ${curSum}/${totalXp} XP).`);
+      return;
+    }
+    const initVal = Math.min(50, Math.max(30, totalXp - curSum));
+    currentChar.stats.push({ key: "Nouvelle", label: "Nouvelle", value: initVal, bonus: 0 });
     renderStatsList();
+    renderSkillsList();
     onCharUpdated();
   });
 
   $("#roll-all-stats-btn").addEventListener("click", () => {
-    currentChar.stats.forEach(st => {
-      st.value = 30 + Math.floor(Math.random() * 41); // Entre 30 et 70
+    const n = currentChar.stats.length;
+    if (n === 0) return;
+    const totalXp = getCharTotalXp(currentChar);
+    // Tirer entre 30 et 70 tout en respectant la limite totale d'XP
+    const vals = currentChar.stats.map(() => 30 + Math.floor(Math.random() * 41));
+    let sum = vals.reduce((a, b) => a + b, 0);
+    while (sum > totalXp) {
+      const candidates = vals.map((v, i) => v > 30 ? i : -1).filter(i => i >= 0);
+      if (!candidates.length) break;
+      const pick = candidates[Math.floor(Math.random() * candidates.length)];
+      vals[pick]--;
+      sum--;
+    }
+    currentChar.stats.forEach((st, i) => {
+      st.value = vals[i];
     });
     renderStatsList();
     onCharUpdated(true);
-    showToast("Caractéristiques générées aléatoirement (30–70) !");
+    showToast(`Caractéristiques tirées aléatoirement (Total : ${sum} / ${totalXp} XP) !`);
   });
 
   $("#add-weapon-btn").addEventListener("click", () => {
     currentChar.weapons.push({ name: "Nouvelle arme", expr: "1d8" });
     renderWeaponsList();
     onCharUpdated();
+  });
+
+  $("#add-skill-btn").addEventListener("click", () => {
+    currentChar.skills = currentChar.skills || [];
+    const defaultStat = currentChar.stats?.[0]?.key || "";
+    currentChar.skills.push({
+      name: "Nouvelle compétence",
+      category: "Utilitaire",
+      stat: defaultStat,
+      bonus: 10,
+      desc: "Description de la compétence…"
+    });
+    renderSkillsList();
+    onCharUpdated(true, "play");
   });
 
   $("#add-resource-btn").addEventListener("click", () => {
@@ -614,31 +1016,93 @@ document.addEventListener("DOMContentLoaded", () => {
 
   $("#items-card-title").addEventListener("input", e => {
     currentChar.itemsCardTitle = e.target.value;
-    onCharUpdated();
+    onCharUpdated(false, "play");
+  });
+
+  $("#gear-card-title").addEventListener("input", e => {
+    currentChar.gearCardTitle = e.target.value;
+    onCharUpdated(false, "play");
   });
 
   $("#show-secondary-card").addEventListener("change", e => {
     currentChar.showSecondaryCard = e.target.checked;
-    onCharUpdated(true);
+    onCharUpdated(true, "lore");
   });
 
   $("#secondary-card-title").addEventListener("input", e => {
     currentChar.secondaryCardTitle = e.target.value;
-    onCharUpdated();
+    onCharUpdated(false, "lore");
   });
 
   $("#add-item-btn").addEventListener("click", () => {
     const k = "item_" + Date.now().toString(36).slice(-4);
-    currentChar.items.push({ key: k, label: "Nouvel objet", value: 1 });
+    currentChar.items.push({ key: k, label: "Nouvel objet consommable", value: 1 });
     renderItemsList();
-    onCharUpdated();
+    onCharUpdated(true, "play");
+  });
+
+  $("#add-gear-btn").addEventListener("click", () => {
+    currentChar.gear = currentChar.gear || [];
+    const k = "gear_" + Date.now().toString(36).slice(-4);
+    currentChar.gear.push({ key: k, label: "Nouvel objet classique", category: "Équipement", value: 1, expr: "", equipped: true });
+    renderGearList();
+    onCharUpdated(true, "play");
   });
 
   $("#add-chasse-btn").addEventListener("click", () => {
     const k = "Trophee_" + Date.now().toString(36).slice(-4);
     currentChar.chasse.push({ key: k, label: "Nouvelle entrée", value: 1 });
     renderChasseList();
-    onCharUpdated();
+    onCharUpdated(true, "lore");
+  });
+
+  $("#add-magic-btn").addEventListener("click", () => {
+    currentChar.magicItems = currentChar.magicItems || [];
+    currentChar.magicItems.push({
+      name: "Nouvel objet magique",
+      slot: "Relique",
+      expr: "",
+      desc: "Effets et propriétés…",
+      charges: 3,
+      maxCharges: 3,
+      rechargeOnScenario: true,
+      equipped: true
+    });
+    renderMagicItemsList();
+    onCharUpdated(true, "play");
+  });
+
+  // Champs Historique & Sessions
+  $("#lore-backstory").addEventListener("input", e => {
+    currentChar.lore = currentChar.lore || {};
+    currentChar.lore.backstory = e.target.value;
+    onCharUpdated(false, "lore");
+  });
+
+  $("#lore-appearance").addEventListener("input", e => {
+    currentChar.lore = currentChar.lore || {};
+    currentChar.lore.appearance = e.target.value;
+    onCharUpdated(false, "lore");
+  });
+
+  $("#lore-relations").addEventListener("input", e => {
+    currentChar.lore = currentChar.lore || {};
+    currentChar.lore.relations = e.target.value;
+    onCharUpdated(false, "lore");
+  });
+
+  $("#add-session-btn").addEventListener("click", () => {
+    currentChar.sessions = currentChar.sessions || [];
+    const num = currentChar.sessions.length + 1;
+    currentChar.sessions.unshift({
+      id: "scen_" + Date.now().toString(36).slice(-4),
+      title: `Scénario ${num} : Titre de l'aventure`,
+      date: `Scénario ${num}`,
+      rewards: "+50 XP · +100 PO",
+      summary: "Résumé de la session, événements marquants et rencontres…"
+    });
+    renderSessionsList();
+    onCharUpdated(true, "sessions");
   });
 
   $("#char-cond").addEventListener("input", e => {

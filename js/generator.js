@@ -18,7 +18,7 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
-function generateStandaloneHTML(char) {
+function generateStandaloneHTML(char, isPreview = false, initialTab = "play") {
   const c = char.theme?.colors || THEME_PRESETS.forest.colors;
   const defaultMode = char.theme?.defaultMode || "auto";
   const htmlThemeAttr = defaultMode === "light" ? ' data-theme="light"' : defaultMode === "dark" ? ' data-theme="dark"' : "";
@@ -26,7 +26,6 @@ function generateStandaloneHTML(char) {
   const storageKey = char.storageKey || (slugify(char.name) + "-v1");
   const title = `${char.name || "Personnage"} – Suivi de fiche`;
 
-  // Construire les structures de données compatibles avec le format de la fiche
   const hpVital = char.vitals.find(v => v.isHp) || char.vitals[0] || { key: "pv", label: "Points de vie", value: 15, max: 15, color: "--red", isHp: true, showBar: true };
 
   const defObj = {
@@ -34,9 +33,27 @@ function generateStandaloneHTML(char) {
     pvMax: Number(hpVital.max) || Number(hpVital.value) || 15,
     cond: char.cond || "",
     notes: char.notes || "",
+    meta: {
+      gender: char.gender || "",
+      age: char.age || "",
+      height: char.height || "",
+      weight: char.weight || "",
+      rank: char.rank || ""
+    },
+    lore: {
+      backstory: char.lore?.backstory || "",
+      appearance: char.lore?.appearance || "",
+      relations: char.lore?.relations || ""
+    },
+    sessions: Array.isArray(char.sessions) ? structuredClone(char.sessions) : [],
+    magicItems: Array.isArray(char.magicItems) ? structuredClone(char.magicItems) : [],
+    skills: Array.isArray(char.skills) ? structuredClone(char.skills) : [],
     stats: {},
+    statBonus: {},
     res: {},
     items: {},
+    gear: {},
+    gearMeta: {},
     chasse: {},
     t: 0,
     log: []
@@ -50,34 +67,55 @@ function generateStandaloneHTML(char) {
       defObj.pvMax = Number(v.max) || Number(v.value) || 1;
       vitArr.push([v.label, "pv", "pvMax", v.color || "--red", 1, v.showBar ? 1 : 0]);
     } else {
-      defObj[k] = Number(v.value) || 0;
+      const rawVal = Number(v.value) || 0;
+      defObj[k] = k === "xp" ? Math.max(350, rawVal) : rawVal;
       const maxVal = Number(v.max) || 0;
       vitArr.push([v.label, k, maxVal, v.color || "--acc", 0, v.showBar ? 1 : 0]);
     }
   });
 
   const labObj = {};
+  let baseStatSum = 0;
   char.stats.forEach(st => {
-    defObj.stats[st.key] = Number(st.value) || 0;
+    const rawBase = Number(st.value) || 50;
+    const clampedBase = Math.max(30, Math.min(70, rawBase));
+    defObj.stats[st.key] = clampedBase;
+    baseStatSum += clampedBase;
+    defObj.statBonus[st.key] = Number(st.bonus) || 0;
     if (st.label && st.label !== st.key) {
       labObj[st.key] = st.label;
     }
   });
+  if (defObj.xp !== undefined && defObj.xp < Math.max(350, baseStatSum)) {
+    defObj.xp = Math.max(350, baseStatSum);
+  }
 
   const resArr = [];
-  const rechargeKeys = [];
   char.resources.forEach(r => {
     defObj.res[r.key] = Number(r.value) ?? Number(r.max) ?? 0;
     resArr.push([r.key, r.name, r.desc || "", Number(r.max) || 1, r.rechargeOnScenario !== false ? 1 : 0]);
-    if (r.rechargeOnScenario !== false) {
-      rechargeKeys.push([r.key, Number(r.max) || 1]);
-    }
   });
 
   const itemsObj = {};
   char.items.forEach(it => {
     defObj.items[it.key] = Number(it.value) || 0;
     itemsObj[it.key] = it.label;
+  });
+
+  const gearObj = {};
+  (char.gear || []).forEach(g => {
+    const rawExpr = (g.expr || "").trim();
+    const cat = ["Équipement", "Arme", "Armure"].includes(g.category)
+      ? g.category
+      : rawExpr ? "Arme" : /armure|plate|cotte|cuirasse|casque/i.test(g.label || "") ? "Armure" : "Équipement";
+    const expr = rawExpr || (cat === "Armure" ? "1d4" : "");
+    defObj.gear[g.key] = 1;
+    defObj.gearMeta[g.key] = {
+      category: cat,
+      expr,
+      equipped: g.equipped !== false
+    };
+    gearObj[g.key] = g.label;
   });
 
   const chasseLabels = {};
@@ -108,22 +146,37 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 Calibri,Carlito,system-ui,sans-serif}
 main{max-width:980px;margin:0 auto;padding:0 14px 40px}
-h1,h2{font-family:Georgia,serif;margin:0}
+h1,h2,h3{font-family:Georgia,serif;margin:0}
 h2{font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:var(--acc);border-bottom:2px solid var(--gold);padding-bottom:4px;margin:22px 0 10px}
 .hero{background:var(--band);color:var(--on);border:2px solid var(--gold);border-radius:12px;padding:14px;display:flex;gap:14px;align-items:center;margin-top:14px}
 .hero img{width:76px;height:114px;object-fit:cover;border-radius:8px;border:2px solid var(--gold);flex-shrink:0}
 .hero h1{font-size:clamp(22px,6vw,34px);letter-spacing:.1em}
 .hero p{margin:4px 0 0;color:var(--gold);letter-spacing:.18em;font-size:11px;font-weight:700;text-transform:uppercase}
+.hero-meta{display:flex;flex-wrap:wrap;gap:6px 8px;margin-top:8px;font-size:12px;color:var(--on)}
+.hero-meta span{background:#0000002e;border:1px solid var(--gold);border-radius:6px;padding:2px 8px;white-space:nowrap}
+.hero-meta b{color:var(--gold);font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:.08em;margin-right:4px}
+.hero-ed{display:none;flex-wrap:wrap;gap:6px;margin-top:8px}
+body.edit .hero-ed{display:flex}
+.hero-ed input{width:110px;padding:4px 7px;border-radius:6px;border:1px solid var(--gold);background:#00000040;color:var(--on);font-size:12px}
 .tools{margin-left:auto;display:flex;flex-direction:column;gap:6px}
 button{font:inherit;cursor:pointer;color:inherit}
 .btn{background:var(--card);color:var(--acc);border:1px solid var(--gold);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600}
 .btn:hover{filter:brightness(1.04)}
 .btn.on{background:var(--gold);color:#1b1b1b}
-.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border:1px solid var(--gold);border-radius:10px;margin-top:10px;padding:8px 12px;display:flex;gap:12px;align-items:center;box-shadow:0 2px 8px #0002}
-.bar b{color:var(--red);font-family:Georgia,serif;white-space:nowrap}
-#last{flex:1;font-size:14px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border:1.5px solid var(--gold);border-radius:10px;margin-top:10px;padding:10px 14px;display:flex;gap:12px;align-items:center;box-shadow:0 2px 8px #0002}
+#last{flex:1;font-size:18px;line-height:1.35}
+#last b,.bar .ok,.bar .ko{font-size:19px}
+/* Onglets de navigation de la fiche */
+.sheet-tabs{display:flex;gap:8px;margin-top:14px;border-bottom:2px solid var(--line);padding-bottom:8px;overflow-x:auto}
+.sheet-tab{background:var(--card);color:var(--mute);border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-family:Georgia,serif;font-size:14px;font-weight:700;letter-spacing:.04em;white-space:nowrap;transition:all .15s}
+.sheet-tab:hover{border-color:var(--gold);color:var(--ink)}
+.sheet-tab.active{background:var(--band);color:var(--on);border-color:var(--gold)}
+.sheet-tab .cnt{display:inline-block;background:var(--gold);color:#1b1b1b;border-radius:99px;padding:1px 7px;font-size:11px;margin-left:5px;font-family:Calibri,sans-serif}
+.sheet-pane{display:none}
+.sheet-pane.active{display:block}
 .ok{color:var(--mid);font-weight:700}.ko{color:var(--red);font-weight:700}
 .grid{display:grid;gap:10px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
 .g3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
 .g7{grid-template-columns:repeat(auto-fit,minmax(104px,1fr))}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
@@ -141,6 +194,16 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .stat:hover{border-color:var(--gold)}
 .stat span{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);font-weight:700}
 .stat b{font:700 26px Georgia,serif;color:var(--acc)}
+.stat small{display:block;font-size:11px;color:var(--mute);margin-top:2px;font-weight:600}
+.stat small em{font-style:normal;color:var(--gold);font-weight:700}
+.bon-row{display:none;align-items:center;justify-content:center;gap:4px;margin-top:4px;font-size:11px;color:var(--mute)}
+body.edit .bon-row{display:flex}
+.bon-row .st{width:22px;height:22px;font-size:13px}
+.bon-row input{width:3.2ch;text-align:center;font:700 13px Georgia,serif;background:var(--card);border:1px solid var(--line);border-radius:5px;color:var(--gold);padding:1px 0}
+.edit-only-vital .st{display:none}
+.edit-only-vital input{pointer-events:none}
+body.edit .edit-only-vital .st{display:inline-block}
+body.edit .edit-only-vital input{pointer-events:auto;background:var(--soft);border:1px solid var(--line);border-radius:6px}
 .ed{display:none;width:100%;margin-top:4px;text-align:center;background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px}
 body.edit .ed{display:block}body.edit .stat b{opacity:.35}
 .row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line)}
@@ -151,26 +214,52 @@ body.edit .ed{display:block}body.edit .stat b{opacity:.35}
 body.edit .del-row{display:inline-block}
 .add-box{display:none;gap:6px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
 body.edit .add-box{display:flex}
-.add-box input{flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--line);background:var(--soft);color:var(--ink);font-size:13px}
+.add-box input,.add-box select{flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--line);background:var(--soft);color:var(--ink);font-size:13px}
 .dots{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
 .dots button{width:24px;height:24px;border-radius:50%;border:2px solid var(--gold);background:none}
 .dots button.f{background:var(--gold)}
 .res{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dashed var(--line)}
 .res:last-child{border:0}.res small{display:block;color:var(--mute);font-size:12px}
 .dice{display:flex;flex-wrap:wrap;gap:8px}
-.dice button{min-width:52px}
+.dice button{min-width:56px;font-size:15px;padding:7px 12px}
 .exp{display:flex;gap:8px;margin-top:10px}
-.exp input{flex:1;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
-#log{margin:10px 0 0;padding:0;list-style:none;font-size:13px;color:var(--mute)}
-#log li{padding:2px 0;border-bottom:1px dotted var(--line)}
+.exp input{flex:1;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:15px}
+.log-head{display:flex;align-items:center;justify-content:space-between;margin-top:12px;margin-bottom:4px;font-size:12px;color:var(--mute);font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+#log{margin:0;padding:6px 10px;list-style:none;font-size:15px;color:var(--ink);max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:var(--soft)}
+#log li{padding:5px 0;border-bottom:1px dotted var(--line)}
+#log li:last-child{border-bottom:0}
+.ts{color:var(--mute);font-size:12px;font-family:Consolas,monospace;margin-right:6px;font-weight:600}
 textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;resize:vertical}
 .txt{min-height:0}
+.lore-area{min-height:130px;line-height:1.5}
+/* Journal des sessions */
+.sess-list{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.sess-card{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:10px;padding:12px 14px}
+.sess-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;border-bottom:1px dashed var(--line);padding-bottom:6px;margin-bottom:8px}
+.sess-head h3{font-size:17px;color:var(--acc)}
+.sess-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px}
+.badge{background:var(--soft);color:var(--acc);border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-weight:700}
+.badge.gold{background:var(--band);color:var(--on);border-color:var(--gold)}
+.sess-body{white-space:pre-wrap;font-size:14px;line-height:1.5;color:var(--ink)}
+.sess-form{background:var(--card);border:1px solid var(--gold);border-radius:10px;padding:12px;margin-bottom:14px;display:none}
+.sess-form.open{display:block}
+.sess-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:8px}
+.empty-msg{text-align:center;padding:24px;color:var(--mute);font-style:italic;background:var(--card);border:1px dashed var(--line);border-radius:10px;margin-top:10px}
 .foot{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
 .mini{font-size:12px;color:var(--mute);margin-top:6px}
+.brand-foot,.print-tab-foot{text-align:center;font-family:Georgia,serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);border-top:1px solid var(--line);padding-top:10px;margin-top:18px}
+.print-tab-foot{display:none}
+.print-tab-head{display:none;align-items:center;justify-content:space-between;background:var(--band);color:var(--on);border:1.5px solid var(--gold);border-radius:8px;padding:6px 12px;margin-bottom:10px;font-family:Georgia,serif;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 @media print{
-  .tools,.foot,.exp,#quick,#saved{display:none!important}
-  .bar{position:static;box-shadow:none}
-  body{background:#fff;color:#000}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  .tools,.foot,.exp,#quick,#saved,.brand-foot,.sheet-tabs,.bar,.log-head,#log,.st,#archive-notes-btn,#toggle-sess-form,.sess-form,[data-edit-sess],[data-del-sess],.add-box,.del-row,.ed,.hero-ed{display:none!important}
+  .sheet-pane{display:block!important;margin-bottom:0}
+  .sheet-pane + .sheet-pane{page-break-before:always;break-before:page;padding-top:10px}
+  .print-tab-head{display:flex!important}
+  .print-tab-foot{display:block!important}
+  .card,.sess-card{break-inside:avoid;page-break-inside:avoid}
+  textarea{overflow:hidden!important;resize:none!important}
+  body{background:var(--bg);color:var(--ink)}
 }
 </style>
 </head>
@@ -178,118 +267,459 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
 <main>
 <div class="hero">
   ${char.portrait ? `<img src="${escapeHtml(char.portrait)}" alt="Portrait de ${escapeHtml(char.name)}">` : ""}
-  <div><h1>${escapeHtml(char.name || "PERSONNAGE")}</h1><p>${escapeHtml(char.subtitle || "")}</p></div>
-  <div class="tools"><button class="btn" id="edit">✎ Éditer</button><button class="btn" id="theme">◐ Thème</button></div>
-</div>
-
-<div class="bar"><span>PV <b id="barpv"></b></span><div id="last">Cliquez sur une caractéristique ou une arme pour lancer les dés.</div></div>
-
-<h2>Statut</h2>
-<div class="grid g3" id="vitals"></div>
-
-<h2>Caractéristiques <span style="font-size:11px;letter-spacing:0;text-transform:none;color:var(--mute)">· clic = jet d100 (réussite si ≤ valeur)</span></h2>
-<div class="grid g7" id="stats"></div>
-
-<h2>Dés &amp; armes</h2>
-<div class="card">
-  <div class="dice" id="weapons"></div>
-  <div class="dice" id="quick" style="margin-top:10px"></div>
-  <div class="exp"><input id="expr" placeholder="Jet libre : 2d6+3" aria-label="Jet libre"><button class="btn" id="go">Lancer</button></div>
-  <ul id="log"></ul>
-</div>
-
-<h2>Charges &amp; pouvoirs</h2>
-<div class="card" id="res"></div>
-<div class="foot"><button class="btn" id="scenar">${escapeHtml(char.scenarioBtnLabel || "⟳ Nouveau scénario (recharge pouvoirs)")}</button><button class="btn" id="rest">${escapeHtml(char.restBtnLabel || "☾ Repos : PV au max")}</button></div>
-
-<h2>${escapeHtml(char.inventoryTitle || "Inventaire consommable")}</h2>
-<div class="grid g3">
-  <div class="card">
-    <div class="lbl">${escapeHtml(char.itemsCardTitle || "Consommables")}</div>
-    <div id="items"></div>
-    <div class="add-box"><input id="new-item" placeholder="Nouvel objet…"><button class="btn" id="add-item">+ Ajouter</button></div>
+  <div style="flex:1;min-width:0">
+    <h1>${escapeHtml(char.name || "PERSONNAGE")}</h1>
+    <p>${escapeHtml(char.subtitle || "")}</p>
+    <div class="hero-meta" id="hero-meta"></div>
+    <div class="hero-ed">
+      <input data-k="meta.gender" placeholder="Genre (ex: Féminin)" title="Genre">
+      <input data-k="meta.age" placeholder="Âge (ex: 28 ans)" title="Âge">
+      <input data-k="meta.height" placeholder="Taille (ex: 1m72)" title="Taille">
+      <input data-k="meta.weight" placeholder="Poids (ex: 58 kg)" title="Poids">
+      <input data-k="meta.rank" placeholder="Grade (ex: Sergent)" title="Grade" style="width:140px">
+    </div>
   </div>
-  ${char.showSecondaryCard !== false ? `<div class="card">
-    <div class="lbl">${escapeHtml(char.secondaryCardTitle || "Tableau de chasse")}</div>
+  <div class="tools"><button class="btn" id="edit">✎ Éditer</button><button class="btn" id="theme">◐ Thème</button><button class="btn" id="export-pdf" title="Exporter la fiche en PDF (1 onglet par page)">📄 PDF</button></div>
+</div>
+
+<div class="bar"><div id="last">🎲 Cliquez sur une caractéristique, une compétence ou une arme pour lancer les dés.</div></div>
+
+<nav class="sheet-tabs" aria-label="Sections de la fiche">
+  <button class="sheet-tab ${initialTab === "play" ? "active" : ""}" data-sheet-tab="play">⚔ Fiche de jeu</button>
+  <button class="sheet-tab ${initialTab === "lore" ? "active" : ""}" data-sheet-tab="lore">📜 Historique &amp; Lore</button>
+  <button class="sheet-tab ${initialTab === "sessions" ? "active" : ""}" data-sheet-tab="sessions">📖 Sessions <span class="cnt" id="sess-count">0</span></button>
+</nav>
+
+<!-- ONGLET 1 : FICHE DE JEU -->
+<section class="sheet-pane ${initialTab === "play" ? "active" : ""}" id="pane-play">
+  <div class="print-tab-head"><span>⚔ Fiche de jeu</span><span>${escapeHtml(char.name || "PERSONNAGE")}</span></div>
+  <h2>Statut</h2>
+  <div class="grid g3" id="vitals"></div>
+
+  <h2>Caractéristiques <span style="font-size:11px;letter-spacing:0;text-transform:none;color:var(--mute)">(total <b id="stat-sum">0</b> / <b id="stat-xp">350</b> XP) · clic = jet d100 (réussite si ≤ total)</span></h2>
+  <div class="grid g7" id="stats"></div>
+
+  <h2>Dés &amp; armes</h2>
+  <div class="card">
+    <div class="dice" id="weapons"></div>
+    <div class="dice" id="quick" style="margin-top:10px"></div>
+    <div class="exp"><input id="expr" placeholder="Jet libre : 2d6+3" aria-label="Jet libre"><button class="btn" id="go">Lancer</button></div>
+    <div class="log-head">
+      <span>Historique des jets (<span id="log-count">0</span>)</span>
+      <button class="btn" id="clear-log" style="padding:2px 8px;font-size:11px">Effacer l'historique</button>
+    </div>
+    <ul id="log"></ul>
+  </div>
+
+  <h2>Compétences <span style="font-size:11px;letter-spacing:0;text-transform:none;color:var(--mute)">· clic = jet d100 sous Caractéristique + Bonus</span></h2>
+  <div class="grid g3" id="skills"></div>
+  <div class="card add-box" style="flex-wrap:wrap;align-items:center;margin-top:8px">
+    <input id="new-skill-name" placeholder="Nom de la compétence (ex : Pistage)…" style="min-width:140px">
+    <select id="new-skill-cat" style="max-width:135px" title="Catégorie de compétence">
+      <option value="Social">🗣 Social</option>
+      <option value="Corporel">💪 Corporel</option>
+      <option value="Utilitaire" selected>🛠 Utilitaire</option>
+    </select>
+    <select id="new-skill-stat" style="max-width:145px" title="Caractéristique liée"></select>
+    <input id="new-skill-bonus" type="number" min="-50" max="50" value="10" title="Bonus de compétence (+/-)" style="max-width:75px;text-align:center" placeholder="Bonus">
+    <input id="new-skill-desc" placeholder="Effet / description…" style="min-width:180px;flex:2">
+    <button class="btn" id="add-skill">+ Ajouter</button>
+  </div>
+
+  <h2>Charges &amp; pouvoirs</h2>
+  <div class="card" id="res"></div>
+  <div class="foot"><button class="btn" id="scenar">${escapeHtml(char.scenarioBtnLabel || "⟳ Nouveau scénario (recharge pouvoirs)")}</button><button class="btn" id="rest">${escapeHtml(char.restBtnLabel || "☾ Repos : PV au max")}</button></div>
+
+  <h2>Objets magiques &amp; reliques</h2>
+  <div class="card">
+    <div id="magic-items"></div>
+    <div class="add-box" style="flex-wrap:wrap;align-items:center">
+      <input id="new-magic-name" placeholder="Nom de l'objet magique…" style="min-width:140px">
+      <input id="new-magic-slot" placeholder="Type (Anneau, Arme…)" style="max-width:130px">
+      <input id="new-magic-expr" placeholder="Jet (ex: 1d10+1)" title="Jet de dés si équipé (optionnel)" style="max-width:115px;text-align:center">
+      <input id="new-magic-desc" placeholder="Effet / propriétés…" style="min-width:160px;flex:2">
+      <input id="new-magic-max" type="number" min="0" max="20" value="0" title="Charges max (0 = sans charges)" style="max-width:70px;text-align:center" placeholder="Charges">
+      <label style="font-size:12px;display:inline-flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" id="new-magic-rech" checked> ⟳ scénar.
+      </label>
+      <button class="btn" id="add-magic">+ Ajouter</button>
+    </div>
+  </div>
+
+  <h2>${escapeHtml(char.inventoryTitle || "Inventaire & Équipement")}</h2>
+  <div class="grid g2">
+    <div class="card">
+      <div class="lbl">${escapeHtml(char.itemsCardTitle || "Inventaire consommable")}</div>
+      <div id="items"></div>
+      <div class="add-box"><input id="new-item" placeholder="Nouvel objet consommable…"><button class="btn" id="add-item">+ Ajouter</button></div>
+    </div>
+    <div class="card">
+      <div class="lbl">${escapeHtml(char.gearCardTitle || "Inventaire non consommable")}</div>
+      <div id="gear"></div>
+      <div class="add-box" style="flex-wrap:wrap;align-items:center">
+        <input id="new-gear" placeholder="Nouvel objet non consommable…" style="min-width:130px">
+        <select id="new-gear-cat" style="max-width:135px" title="Catégorie de l'objet">
+          <option value="Équipement" selected>🎒 Équipement</option>
+          <option value="Arme">⚔ Arme</option>
+          <option value="Armure">🛡 Armure</option>
+        </select>
+        <input id="new-gear-expr" placeholder="Jet (ex: 1d8)" title="Si c'est une arme ou une armure, indiquez ses dés (ex: 1d8, 1d4)" style="max-width:105px;text-align:center">
+        <button class="btn" id="add-gear">+ Ajouter</button>
+      </div>
+    </div>
+  </div>
+
+  <h2>Conditions &amp; notes de session</h2>
+  <input class="txt" data-k="cond" placeholder="Conditions spéciales (poison, saignement…)" style="margin-bottom:8px">
+  <textarea data-k="notes" placeholder="Notes de la session en cours, PNJ rencontrés, indices…"></textarea>
+  <div style="margin-top:6px;display:flex;justify-content:flex-end">
+    <button class="btn" id="archive-notes-btn">📖 Archiver ces notes dans le journal des sessions</button>
+  </div>
+  <div class="print-tab-foot">Compagnie Française de Systèmes et Algorithmes</div>
+</section>
+
+<!-- ONGLET 2 : HISTORIQUE & LORE -->
+<section class="sheet-pane ${initialTab === "lore" ? "active" : ""}" id="pane-lore">
+  <div class="print-tab-head"><span>📜 Historique &amp; Lore</span><span>${escapeHtml(char.name || "PERSONNAGE")}</span></div>
+  <h2>Origines &amp; Histoire du personnage</h2>
+  <textarea class="lore-area" data-k="lore.backstory" style="min-height:160px" placeholder="Racontez l'histoire, le passé, l'origine et les événements fondateurs de votre personnage…"></textarea>
+
+  <div class="grid g2" style="margin-top:6px">
+    <div>
+      <h2>Apparence, Personnalité &amp; Objectifs</h2>
+      <textarea class="lore-area" data-k="lore.appearance" placeholder="Signes particuliers, caractère, motivations, secrets…"></textarea>
+    </div>
+    <div>
+      <h2>Alliés, Contacts &amp; Relations</h2>
+      <textarea class="lore-area" data-k="lore.relations" placeholder="Compagnons de route, mentors, factions, ennemis jurés…"></textarea>
+    </div>
+  </div>
+
+  ${char.showSecondaryCard !== false ? `
+  <h2>${escapeHtml(char.secondaryCardTitle || "Tableau de chasse")}</h2>
+  <div class="card">
     <div id="chasse"></div>
     <div class="add-box"><input id="new-chasse" placeholder="Nouvelle entrée…"><button class="btn" id="add-chasse">+ Ajouter</button></div>
   </div>` : ""}
-</div>
+  <div class="print-tab-foot">Compagnie Française de Systèmes et Algorithmes</div>
+</section>
 
-<h2>Conditions &amp; notes</h2>
-<input class="txt" data-k="cond" placeholder="Conditions spéciales (poison, saignement…)" style="margin-bottom:8px">
-<textarea data-k="notes" placeholder="Notes de session, PNJ rencontrés, indices…"></textarea>
+<!-- ONGLET 3 : JOURNAL DES SESSIONS / SCÉNARIOS -->
+<section class="sheet-pane ${initialTab === "sessions" ? "active" : ""}" id="pane-sessions">
+  <div class="print-tab-head"><span>📖 Journal des Sessions</span><span>${escapeHtml(char.name || "PERSONNAGE")}</span></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:22px 0 10px;border-bottom:2px solid var(--gold);padding-bottom:6px">
+    <h2 style="margin:0;border:0;padding:0">Journal des scénarios &amp; sessions</h2>
+    <button class="btn" id="toggle-sess-form">+ Ajouter un scénario / une session</button>
+  </div>
+
+  <div class="sess-form" id="sess-form">
+    <div class="lbl" id="sess-form-title">Nouvelle entrée de scénario</div>
+    <input type="hidden" id="sess-edit-id" value="">
+    <div class="sess-form-grid">
+      <input class="txt" id="sess-title" placeholder="Nom du scénario (ex : Les Ombres de Bois-Maudit)">
+      <input class="txt" id="sess-date" placeholder="Session / Date (ex : Scénario 2 · Oct. 2026)">
+      <input class="txt" id="sess-rewards" placeholder="Gains (ex : +60 XP, +150 PO, Anneau…)">
+    </div>
+    <textarea id="sess-summary" placeholder="Résumé de l'aventure, boss vaincus, choix importants, PNJ rencontrés…"></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+      <button class="btn" id="cancel-sess-btn">Annuler</button>
+      <button class="btn on" id="save-sess-btn">✓ Enregistrer la session</button>
+    </div>
+  </div>
+
+  <div id="sessions-container" class="sess-list"></div>
+  <div class="print-tab-foot">Compagnie Française de Systèmes et Algorithmes</div>
+</section>
 
 <div class="foot">
   <button class="btn" id="reset">Réinitialiser le scénario</button>
+  <button class="btn" id="export-pdf-foot">📄 Exporter en PDF</button>
   <button class="btn" id="export-save">⬇ Sauvegarder état (.json)</button>
   <button class="btn" id="import-save-btn">⬆ Charger état (.json)</button>
   <input type="file" id="import-save-file" accept=".json" style="display:none">
 </div>
 <div class="mini" id="saved">Sauvegarde automatique dans ce navigateur.</div>
+<footer class="brand-foot">Compagnie Française de Systèmes et Algorithmes</footer>
 </main>
 <script id="rpg-char-config" type="application/json">${embeddedConfig}</script>
 <script>
+const IS_PREVIEW=${JSON.stringify(!!isPreview)};
 const STORAGE_KEY=${JSON.stringify(storageKey)};
 const DEF=${JSON.stringify(defObj)};
 const LAB=${JSON.stringify(labObj)};
 const VIT=${JSON.stringify(vitArr)};
 const RES=${JSON.stringify(resArr)};
 const ITEMS=${JSON.stringify(itemsObj)};
+const GEAR=${JSON.stringify(gearObj)};
 const CHASSE_LAB=${JSON.stringify(chasseLabels)};
 const WEAP=${JSON.stringify(weapArr)};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const get=(o,p)=>p.split('.').reduce((a,k)=>a?.[k],o);
-const put=(o,p,v)=>{const k=p.split('.'),l=k.pop();k.reduce((a,x)=>a[x],o)[l]=v};
+const put=(o,p,v)=>{const k=p.split('.'),l=k.pop();k.reduce((a,x)=>a[x]||(a[x]={}),o)[l]=v};
 const merge=(a,b)=>{for(const k in b){a[k]=b[k]&&typeof b[k]=='object'&&!Array.isArray(b[k])&&a[k]?merge(a[k],b[k]):b[k]}return a};
+const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 let S=structuredClone(DEF);
-try{const t=localStorage.getItem(STORAGE_KEY);if(t)merge(S,JSON.parse(t))}catch(e){}
+if(!IS_PREVIEW){try{const t=localStorage.getItem(STORAGE_KEY);if(t)merge(S,JSON.parse(t))}catch(e){}}
 if(!S.itemLabels)S.itemLabels={...ITEMS};
+if(!S.gear)S.gear={};
+if(!S.gearLabels)S.gearLabels={...GEAR};
+if(!S.gearMeta)S.gearMeta=structuredClone(DEF.gearMeta||{});
 if(!S.chasseLabels)S.chasseLabels={...CHASSE_LAB};
-const clean=()=>{for(const k in S.stats)if(!(k in DEF.stats))delete S.stats[k]};clean();
+if(!S.meta)S.meta=structuredClone(DEF.meta||{gender:'',age:'',height:'',weight:'',rank:''});
+if(!S.lore)S.lore={backstory:'',appearance:'',relations:''};
+if(!Array.isArray(S.sessions))S.sessions=[];
+if(!Array.isArray(S.magicItems))S.magicItems=[];
+if(!Array.isArray(S.skills))S.skills=structuredClone(DEF.skills||[]);
+if(!S.statBonus)S.statBonus={};
+const statSum=(excl='')=>Object.keys(DEF.stats).reduce((a,k)=>k===excl?a:a+(+(S.stats[k]||50)),0);
+const clean=()=>{
+  for(const k in S.stats){
+    if(!(k in DEF.stats))delete S.stats[k];
+    else S.stats[k]=Math.max(30,Math.min(70,S.stats[k]));
+  }
+  if((S.xp||0)<Math.max(350,statSum()))S.xp=Math.max(350,statSum());
+};clean();
+
+// ---- navigation onglets fiche
+function switchSheetTab(tab){
+  $$('.sheet-tab').forEach(b=>b.classList.toggle('active',b.dataset.sheetTab===tab));
+  $$('.sheet-pane').forEach(p=>p.classList.toggle('active',p.id==='pane-'+tab));
+}
+$$('.sheet-tab').forEach(b=>b.onclick=()=>switchSheetTab(b.dataset.sheetTab));
 
 // ---- construction
-$('#vitals').innerHTML=VIT.map(([n,k,m,c,hp,bar])=>\`<div class="card" style="--c:var(\${c})"><div class="lbl">\${n}</div><div class="big"><button class="st" data-k="\${k}" data-d="-1" aria-label="moins">−</button><input type="number" data-k="\${k}" aria-label="\${n}"><button class="st" data-k="\${k}" data-d="1" aria-label="plus">+</button></div>\${hp?\`<div class="sub">PV de base / max : <b data-v="pvMax"></b></div><input class="ed" type="number" data-k="pvMax" aria-label="PV max"><div class="meter"><i id="pvbar"></i></div>\`:m?\`<div class="sub">/ <b>\${m}</b></div>\`+(bar?\`<div class="meter"><i data-meter="\${k}" data-max="\${m}"></i></div>\`:''):'<div class="sub">&nbsp;</div>'}</div>\`).join('');
-$('#stats').innerHTML=Object.keys(DEF.stats).map(k=>\`<div><button class="stat" data-roll="\${k}"><span>\${LAB[k]||k}</span><b data-v="stats.\${k}"></b></button><input class="ed" type="number" data-k="stats.\${k}" aria-label="\${LAB[k]||k}"></div>\`).join('');
-$('#weapons').innerHTML=WEAP.map(([n,e])=>\`<button class="btn" data-expr="\${e}" data-name="\${n}">\${n} <small>\${e}</small></button>\`).join('');
+const EDIT_ONLY_VITALS=new Set(['corr','folie','xp','chance']);
+$('#vitals').innerHTML=VIT.map(([n,k,m,c,hp,bar])=>\`<div class="card" style="--c:var(\${c})"><div class="lbl">\${n}</div><div class="big \${EDIT_ONLY_VITALS.has(k)?'edit-only-vital':''}"><button class="st" data-k="\${k}" data-d="-1" aria-label="moins">−</button><input type="number" data-k="\${k}" aria-label="\${n}" \${k=='xp'?'min="350"':''}><button class="st" data-k="\${k}" data-d="1" aria-label="plus">+</button></div>\${hp?\`<div class="sub">PV de base / max : <b data-v="pvMax"></b></div><input class="ed" type="number" data-k="pvMax" aria-label="PV max"><div class="meter"><i id="pvbar"></i></div>\`:m?\`<div class="sub">/ <b>\${m}</b></div>\`+(bar?\`<div class="meter"><i data-meter="\${k}" data-max="\${m}"></i></div>\`:''):k=='xp'?'<div class="sub">Min. 350</div>':'<div class="sub">&nbsp;</div>'}</div>\`).join('');
+$('#stats').innerHTML=Object.keys(DEF.stats).map(k=>\`<div><button class="stat" data-roll="\${k}"><span>\${LAB[k]||k}</span><b data-stat-tot="\${k}"></b><small data-stat-sub="\${k}"></small></button><div class="bon-row" title="Bonus ponctuel (objet magique ou consommable)"><span>Boost</span><button class="st" data-k="statBonus.\${k}" data-d="-1">−</button><input type="number" data-k="statBonus.\${k}" aria-label="Bonus \${LAB[k]||k}"><button class="st" data-k="statBonus.\${k}" data-d="1">+</button></div><input class="ed" type="number" min="30" max="70" data-k="stats.\${k}" title="Valeur de base (30 à 70)" aria-label="Base \${LAB[k]||k}"></div>\`).join('');
 $('#quick').innerHTML=[4,6,8,10,20,100].map(d=>\`<button class="btn" data-expr="1d\${d}" data-name="d\${d}">d\${d}</button>\`).join('');
 $('#res').innerHTML=RES.map(([k,n,d,m])=>\`<div class="res"><div><b>\${n}</b><small>\${d}</small></div><div class="dots" data-dots="res.\${k}" data-max="\${m}">\${Array.from({length:m},(_,i)=>\`<button data-i="\${i}" aria-label="charge \${i+1}"></button>\`).join('')}</div></div>\`).join('');
+if($('#new-skill-stat')){$('#new-skill-stat').innerHTML='<option value="">(Passif / Sans jet)</option>'+Object.keys(DEF.stats).map(k=>\`<option value="\${k}">\${LAB[k]||k}</option>\`).join('')}
+
+const normName=s=>String(s||'').trim().toLowerCase();
+const findWeapExpr=name=>{const n=normName(name),w=WEAP.find(([wn])=>normName(wn)===n);return w?w[1]:''};
+
+function renderWeapons(){
+  if(!$('#weapons'))return;
+  const btns=[];
+  const handledNames=new Set();
+  // 1. Armes & armures issues des objets magiques équipés
+  (S.magicItems||[]).forEach(m=>{
+    const isArmor=/armure|bouclier/i.test(m.slot||'');
+    const expr=(m.expr||findWeapExpr(m.name)||(isArmor?'1d4':'')||'').trim();
+    if(expr){
+      handledNames.add(normName(m.name));
+      if(m.equipped!==false){
+        btns.push(\`<button class="btn" data-expr="\${esc(expr)}" data-name="\${esc(m.name)}" title="Objet magique équipé">✦ \${esc(m.name)} <small>\${esc(expr)}</small></button>\`);
+      }
+    }
+  });
+  // 2. Armes & armures issues de l'inventaire non consommable équipées
+  Object.keys(S.gear||{}).forEach(k=>{
+    const label=S.gearLabels?.[k]||GEAR[k]||k;
+    const meta=S.gearMeta?.[k]||{};
+    const isArmor=meta.category==='Armure';
+    const expr=(meta.expr||findWeapExpr(label)||(isArmor?'1d4':'')||'').trim();
+    if(expr){
+      handledNames.add(normName(label));
+      if(meta.equipped!==false){
+        const icon=isArmor?'🛡':'⚔';
+        const title=isArmor?"Armure équipée":"Arme d'inventaire équipée";
+        btns.push(\`<button class="btn" data-expr="\${esc(expr)}" data-name="\${esc(label)}" title="\${title}">\${icon} \${esc(label)} <small>\${esc(expr)}</small></button>\`);
+      }
+    }
+  });
+  // 3. Jets de base (ex: Initiative, sorts...) non liés à un objet d'inventaire
+  WEAP.forEach(([n,e])=>{
+    if(!handledNames.has(normName(n))){
+      btns.push(\`<button class="btn" data-expr="\${esc(e)}" data-name="\${esc(n)}">\${esc(n)} <small>\${esc(e)}</small></button>\`);
+    }
+  });
+  $('#weapons').innerHTML=btns.join('');
+}
 
 const stepRow=(k,n,grp)=>\`<div class="row"><button class="del-row" data-del="\${k}" data-grp="\${grp}" title="Supprimer">×</button><span>\${n}</span><button class="st" data-k="\${k}" data-d="-1">−</button><input type="number" data-k="\${k}"><button class="st" data-k="\${k}" data-d="1">+</button></div>\`;
+const gearRow=k=>{
+  const label=S.gearLabels?.[k]||GEAR[k]||k;
+  const defExpr=findWeapExpr(label);
+  const meta=S.gearMeta?.[k]||(S.gearMeta[k]={category:defExpr?'Arme':'Équipement',expr:defExpr,equipped:true});
+  const cat=['Équipement','Arme','Armure'].includes(meta.category)?meta.category:(meta.expr||defExpr?'Arme':'Équipement');
+  meta.category=cat;
+  const expr=(meta.expr||defExpr||(cat==='Armure'?'1d4':'')||'').trim();
+  if(expr&&!meta.expr)meta.expr=expr;
+  const catIcon=cat==='Arme'?'⚔':cat==='Armure'?'🛡':'🎒';
+  const eq=meta.equipped!==false;
+  return \`<div class="row">
+    <button class="del-row" data-del="gear.\${k}" data-grp="gear" title="Supprimer">×</button>
+    <span>\${esc(label)} <span class="badge" style="font-size:11px;margin-left:4px">\${catIcon} \${esc(cat)}</span>\${expr?\` <span class="badge" style="font-size:11px;margin-left:4px">🎲 \${esc(expr)}</span>\`:''}</span>
+    <button class="btn \${eq?'on':''}" style="padding:2px 8px;font-size:11px;white-space:nowrap" data-toggle-gear="\${k}" title="Équiper / ranger en sac">\${eq?'✓ Équipé':'En sac'}</button>
+  </div>\`;
+};
 function renderLists(){
   if($('#items'))$('#items').innerHTML=Object.keys(S.items).map(k=>stepRow('items.'+k,S.itemLabels?.[k]||ITEMS[k]||k,'items')).join('');
+  if($('#gear'))$('#gear').innerHTML=Object.keys(S.gear).map(k=>gearRow(k)).join('');
   if($('#chasse'))$('#chasse').innerHTML=Object.keys(S.chasse).map(k=>stepRow('chasse.'+k,S.chasseLabels?.[k]||CHASSE_LAB[k]||k,'chasse')).join('');
+  if($('#skills')){
+    const inferCat=sk=>{
+      if(['Social','Corporel','Utilitaire'].includes(sk.category))return sk.category;
+      if(sk.stat==='Social'||sk.stat==='Volonté')return 'Social';
+      if(sk.stat==='Force'||sk.stat==='Consti'||sk.stat==='Dextérité')return 'Corporel';
+      return 'Utilitaire';
+    };
+    const cats=[['Social','🗣 Social'],['Corporel','💪 Corporel'],['Utilitaire','🛠 Utilitaire']];
+    $('#skills').innerHTML=cats.map(([catKey,catTitle])=>{
+      const items=S.skills.map((sk,idx)=>({sk,idx})).filter(({sk})=>inferCat(sk)===catKey);
+      const rows=items.length?items.map(({sk,idx})=>{
+        const stKey=sk.stat&&sk.stat in DEF.stats?sk.stat:'';
+        const stLab=stKey?(LAB[stKey]||stKey):'Passif';
+        const bon=+(sk.bonus||0);
+        const bonTxt=bon?(bon>0?'+'+bon:String(bon)):'';
+        const base=stKey?+(S.stats[stKey]||50)+ +(S.statBonus?.[stKey]||0):0;
+        const tot=base+bon;
+        return \`<div class="res" style="flex-wrap:wrap">
+          <div style="display:flex;align-items:flex-start;gap:6px;flex:1;min-width:140px">
+            <button class="del-row" data-del-skill="\${idx}" title="Supprimer">×</button>
+            <div>
+              <b>\${esc(sk.name||'Compétence')}</b>
+              <div style="margin:2px 0"><span class="badge" style="font-size:11px">\${esc(stLab)}\${bonTxt?' '+bonTxt:''}</span></div>
+              <small>\${esc(sk.desc||'')}</small>
+            </div>
+          </div>
+          \${stKey?\`<button class="btn" style="padding:4px 9px;font-size:12px;white-space:nowrap" data-roll-skill="\${idx}">🎲 Jet (<span data-skill-tot="\${idx}">\${tot}</span>)</button>\`:''}
+        </div>\`;
+      }).join(''):'<div style="color:var(--mute);font-size:12px;font-style:italic;padding:4px 0">Aucune compétence.</div>';
+      return \`<div class="card"><div class="lbl">\${catTitle}</div>\${rows}</div>\`;
+    }).join('');
+  }
+  if($('#magic-items')){
+    if(!S.magicItems.length){
+      $('#magic-items').innerHTML='<div style="color:var(--mute);font-size:13px;font-style:italic;padding:4px 0">Aucun objet magique enregistré (cliquez sur ✎ Éditer pour en ajouter).</div>';
+    }else{
+      $('#magic-items').innerHTML=S.magicItems.map((m,idx)=>{
+        const maxC=+(m.maxCharges||0),curC=+(m.charges??maxC);
+        const expr=(m.expr||findWeapExpr(m.name)||'').trim();
+        return \`<div class="res" style="flex-wrap:wrap">
+          <div style="display:flex;align-items:flex-start;gap:8px;flex:1;min-width:200px">
+            <button class="del-row" data-del-magic="\${idx}" title="Supprimer">×</button>
+            <div>
+              <b>\${esc(m.name||'Objet magique')}</b>
+              \${m.slot?\`<span class="badge" style="margin-left:4px;font-size:11px">\${esc(m.slot)}</span>\`:''}
+              \${expr?\`<span class="badge" style="margin-left:4px;font-size:11px">⚔ \${esc(expr)}</span>\`:''}
+              \${maxC>0&&m.rechargeOnScenario!==false?\`<span class="badge" style="margin-left:4px;font-size:10px" title="Se recharge à chaque nouveau scénario">⟳ / scénar</span>\`:''}
+              <small>\${esc(m.desc||'')}</small>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            \${maxC>0?\`<div class="dots" style="margin-top:0" data-magic-dots="\${idx}" data-max="\${maxC}">\${Array.from({length:maxC},(_,i)=>\`<button class="\${i<curC?'f':''}" data-i="\${i}" aria-label="charge \${i+1}"></button>\`).join('')}</div>\`:''}
+            <button class="btn \${m.equipped!==false?'on':''}" style="padding:4px 10px;font-size:12px;white-space:nowrap" data-toggle-magic="\${idx}">\${m.equipped!==false?'✦ Équipé':'En sac'}</button>
+          </div>
+        </div>\`;
+      }).join('');
+    }
+  }
+  renderWeapons();
 }
 renderLists();
+
+function renderSessions(){
+  $('#sess-count').textContent=S.sessions.length;
+  const cont=$('#sessions-container');
+  if(!S.sessions.length){
+    cont.innerHTML='<div class="empty-msg">Aucun scénario enregistré pour le moment. Cliquez sur « + Ajouter un scénario » pour garder la trace de vos aventures !</div>';
+    return;
+  }
+  cont.innerHTML=S.sessions.map((s,idx)=>\`<article class="sess-card">
+    <div class="sess-head">
+      <h3>\${esc(s.title||'Scénario sans titre')}</h3>
+      <div class="sess-meta">
+        \${s.date?\`<span class="badge">\${esc(s.date)}</span>\`:''}
+        \${s.rewards?\`<span class="badge gold">\${esc(s.rewards)}</span>\`:''}
+        <button class="btn" style="padding:2px 7px;font-size:12px" data-edit-sess="\${idx}" title="Modifier">✎</button>
+        <button class="btn" style="padding:2px 7px;font-size:12px;color:var(--red)" data-del-sess="\${idx}" title="Supprimer">×</button>
+      </div>
+    </div>
+    <div class="sess-body">\${esc(s.summary||'')}</div>
+  </article>\`).join('');
+}
+renderSessions();
 
 // ---- synchro
 function sync(){
   $$('[data-k]').forEach(el=>{if(el.tagName=='BUTTON'||el===document.activeElement)return;const v=get(S,el.dataset.k);el.value=v??''});
   $$('[data-v]').forEach(el=>el.textContent=get(S,el.dataset.v));
+  if($('#hero-meta')){
+    const m=S.meta||{};
+    const fields=[['Genre',m.gender],['Âge',m.age],['Taille',m.height],['Poids',m.weight],['Grade',m.rank]].filter(([,v])=>v&&String(v).trim());
+    $('#hero-meta').innerHTML=fields.map(([l,v])=>\`<span><b>\${l}</b>\${esc(v)}</span>\`).join('');
+  }
+  $$('[data-stat-tot]').forEach(el=>{
+    const k=el.dataset.statTot,base=+(S.stats[k]||50),bon=+(S.statBonus?.[k]||0);
+    el.textContent=base+bon;
+  });
+  $$('[data-stat-sub]').forEach(el=>{
+    const k=el.dataset.statSub,base=+(S.stats[k]||50),bon=+(S.statBonus?.[k]||0);
+    el.innerHTML=bon?(\`Base \${base} <em>\${bon>0?'+'+bon:bon}</em>\`):\`Base \${base}\`;
+  });
+  if($('#stat-sum'))$('#stat-sum').textContent=statSum();
+  if($('#stat-xp'))$('#stat-xp').textContent=S.xp||350;
+  $$('[data-skill-tot]').forEach(el=>{
+    const sk=S.skills[+el.dataset.skillTot];
+    if(sk&&sk.stat&&sk.stat in DEF.stats){
+      el.textContent=+(S.stats[sk.stat]||50)+ +(S.statBonus?.[sk.stat]||0)+ +(sk.bonus||0);
+    }
+  });
   $$('[data-dots]').forEach(d=>{const v=get(S,d.dataset.dots);[...d.children].forEach((b,i)=>b.classList.toggle('f',i<v))});
   if($('#pvbar'))$('#pvbar').style.width=Math.max(0,Math.min(100,S.pv/(S.pvMax||1)*100))+'%';
   $$('[data-meter]').forEach(m=>{const max=+(m.dataset.max||100);m.style.width=Math.min(100,(S[m.dataset.meter]||0)/max*100)+'%'});
-  $('#barpv').textContent=S.pv+' / '+S.pvMax;
-  $('#log').innerHTML=(S.log||[]).map(t=>\`<li>\${t}</li>\`).join('');
+  const logs=S.log||[];
+  if($('#log-count'))$('#log-count').textContent=logs.length;
+  $('#log').innerHTML=logs.length?logs.map(t=>\`<li>\${t}</li>\`).join(''):'<li style="color:var(--mute);font-style:italic;font-size:13px">Aucun jet enregistré pour cette session.</li>';
 }
 let lsOk=true;
-function persist(){S.t=Date.now();try{localStorage.setItem(STORAGE_KEY,JSON.stringify(S));lsOk=true}catch(e){lsOk=false}}
+function persist(){if(IS_PREVIEW)return;S.t=Date.now();try{localStorage.setItem(STORAGE_KEY,JSON.stringify(S));lsOk=true}catch(e){lsOk=false}}
 function status(){const h=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   $('#saved').textContent=lsOk?'✓ Sauvegardé à '+h+' · dans ce navigateur':'⚠ Sauvegarde locale indisponible : utilisez le bouton Sauvegarder (.json).'}
 function save(){persist();status()}
 addEventListener('pagehide',persist);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='hidden')persist()});
 function change(){sync();save()}
-const clamp=(k,v)=>{v=Math.max(0,v);if(k=='pv')v=Math.min(v,S.pvMax);const vf=VIT.find(x=>x[1]==k);if(vf&&vf[2]&&vf[2]!=='pvMax')v=Math.min(v,vf[2]);return v};
+const clamp=(k,v)=>{
+  if(k.startsWith('statBonus.'))return Math.max(-50,Math.min(50,v));
+  if(k.startsWith('stats.')){
+    const sk=k.slice(6),maxXp=Math.max(30,(S.xp||350)-statSum(sk));
+    return Math.max(30,Math.min(70,maxXp,v));
+  }
+  if(k=='xp')return Math.max(350,statSum(),v);
+  v=Math.max(0,v);
+  if(k=='pv')v=Math.min(v,S.pvMax);
+  const vf=VIT.find(x=>x[1]==k);if(vf&&vf[2]&&vf[2]!=='pvMax')v=Math.min(v,vf[2]);
+  return v;
+};
 
 // ---- dés
-function say(html){$('#last').innerHTML=html;S.log.unshift(html);S.log=S.log.slice(0,10);change()}
+function say(html){
+  const ts=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const entry=\`<span class="ts">[\${ts}]</span>\${html}\`;
+  $('#last').innerHTML=entry;
+  if(!Array.isArray(S.log))S.log=[];
+  S.log.unshift(entry);
+  change();
+  const lg=$('#log');if(lg)lg.scrollTop=0;
+}
 const rnd=n=>1+Math.floor(Math.random()*n);
 function rollExpr(e,name){const m=e.replace(/\\s/g,'').match(/^(\\d*)d(\\d+)([+-]\\d+)?$/i);if(!m)return say('<span class="ko">Format invalide</span> : essayez 1d10+2');
   const n=Math.min(+(m[1]||1),50),f=+m[2],b=+(m[3]||0);if(f<2)return;const r=Array.from({length:n},()=>rnd(f));
   say(\`<b>\${name||e}</b> \${e} → [\${r.join(', ')}]\${b?(b>0?'+':'')+b:''} = <b>\${r.reduce((a,c)=>a+c,0)+b}</b>\`)}
-function rollStat(k){const v=S.stats[k],r=rnd(100),ok=r<=v;
-  say(\`<b>\${LAB[k]||k}</b> (\${v}) → \${r} · <span class="\${ok?'ok':'ko'}">\${ok?'Réussite':'Échec'}</span> (écart \${Math.abs(v-r)})\`)}
+function rollStat(k){
+  const base=+(S.stats[k]||50),bon=+(S.statBonus?.[k]||0),v=base+bon,r=rnd(100),ok=r<=v;
+  const detail=bon?\`\${base}\${bon>0?'+'+bon:bon}=\${v}\`:\`\${v}\`;
+  say(\`<b>\${LAB[k]||k}</b> (\${detail}) → \${r} · <span class="\${ok?'ok':'ko'}">\${ok?'Réussite':'Échec'}</span> (écart \${Math.abs(v-r)})\`);
+}
+function rollSkill(idx){
+  const sk=S.skills[idx];if(!sk||!sk.stat||!(sk.stat in DEF.stats))return;
+  const k=sk.stat,base=+(S.stats[k]||50)+ +(S.statBonus?.[k]||0),bon=+(sk.bonus||0),v=base+bon,r=rnd(100),ok=r<=v;
+  const detail=bon?\`\${LAB[k]||k} \${base}\${bon>0?'+'+bon:bon}=\${v}\`:\`\${LAB[k]||k} \${v}\`;
+  say(\`<b>\${esc(sk.name)}</b> (\${detail}) → \${r} · <span class="\${ok?'ok':'ko'}">\${ok?'Réussite':'Échec'}</span> (écart \${Math.abs(v-r)})\`);
+}
 
 // ---- événements
 document.addEventListener('click',e=>{
@@ -297,34 +727,154 @@ document.addEventListener('click',e=>{
   if(b.dataset.del){
     const grp=b.dataset.grp,rawKey=b.dataset.del.split('.').slice(1).join('.');
     if(grp=='items'){delete S.items[rawKey];if(S.itemLabels)delete S.itemLabels[rawKey]}
+    if(grp=='gear'){delete S.gear[rawKey];if(S.gearLabels)delete S.gearLabels[rawKey];if(S.gearMeta)delete S.gearMeta[rawKey]}
     if(grp=='chasse'){delete S.chasse[rawKey];if(S.chasseLabels)delete S.chasseLabels[rawKey]}
     renderLists();return change();
   }
-  if(b.dataset.d){const k=b.dataset.k;put(S,k,clamp(k,(+get(S,k)||0)+ +b.dataset.d));return change()}
+  if(b.dataset.toggleGear!==undefined){
+    const k=b.dataset.toggleGear;
+    S.gearMeta=S.gearMeta||{};
+    const m=S.gearMeta[k]||(S.gearMeta[k]={expr:findWeapExpr(S.gearLabels?.[k]||GEAR[k]||k),equipped:true});
+    m.equipped=m.equipped===false;
+    renderLists();return change();
+  }
+  if(b.dataset.toggleMagic!==undefined){
+    const idx=+b.dataset.toggleMagic;
+    if(S.magicItems[idx]){S.magicItems[idx].equipped=S.magicItems[idx].equipped===false;renderLists();change()}
+    return;
+  }
+  if(b.dataset.delMagic!==undefined){
+    const idx=+b.dataset.delMagic;
+    S.magicItems.splice(idx,1);renderLists();return change();
+  }
+  if(b.dataset.delSkill!==undefined){
+    const idx=+b.dataset.delSkill;
+    S.skills.splice(idx,1);renderLists();return change();
+  }
+  if(b.dataset.rollSkill!==undefined){
+    return rollSkill(+b.dataset.rollSkill);
+  }
+  if(b.dataset.editSess!==undefined){
+    const idx=+b.dataset.editSess,s=S.sessions[idx];if(!s)return;
+    $('#sess-edit-id').value=String(idx);
+    $('#sess-form-title').textContent='Modifier le scénario';
+    $('#sess-title').value=s.title||'';
+    $('#sess-date').value=s.date||'';
+    $('#sess-rewards').value=s.rewards||'';
+    $('#sess-summary').value=s.summary||'';
+    $('#sess-form').classList.add('open');
+    return;
+  }
+  if(b.dataset.delSess!==undefined){
+    const idx=+b.dataset.delSess;
+    if(confirm('Supprimer cette entrée du journal des sessions ?')){
+      S.sessions.splice(idx,1);renderSessions();change();
+    }
+    return;
+  }
+  if(b.dataset.d){
+    const k=b.dataset.k;
+    if((EDIT_ONLY_VITALS.has(k)||k.startsWith('statBonus.'))&&!document.body.classList.contains('edit'))return;
+    put(S,k,clamp(k,(+get(S,k)||0)+ +b.dataset.d));if(k.startsWith('gear.'))renderWeapons();return change();
+  }
   if(b.dataset.roll)return rollStat(b.dataset.roll);
   if(b.dataset.expr)return rollExpr(b.dataset.expr,b.dataset.name);
+  const mdots=b.closest('[data-magic-dots]');
+  if(mdots){
+    const idx=+mdots.dataset.magicDots,i=+b.dataset.i,m=S.magicItems[idx];
+    if(m){const cur=+(m.charges??m.maxCharges??0);m.charges=cur==i+1?i:i+1;renderLists();change()}
+    return;
+  }
   const dots=b.closest('[data-dots]');
   if(dots){const k=dots.dataset.dots,i=+b.dataset.i;put(S,k,get(S,k)==i+1?i:i+1);return change()}
 });
 document.addEventListener('input',e=>{const el=e.target,k=el.dataset.k;if(!k)return;
+  if((EDIT_ONLY_VITALS.has(k)||k.startsWith('statBonus.'))&&!document.body.classList.contains('edit')){sync();return}
   put(S,k,el.type=='number'?clamp(k,+el.value||0):el.value);
-  if(el.type=='number'){sync()}save()});
+  if(k.startsWith('gear.'))renderWeapons();
+  if(el.type=='number'||k.startsWith('meta.')){sync()}save()});
 $('#go').onclick=()=>rollExpr($('#expr').value,'Jet libre');
 $('#expr').onkeydown=e=>{if(e.key=='Enter')$('#go').click()};
+if($('#clear-log'))$('#clear-log').onclick=()=>{S.log=[];change()};
 $('#edit').onclick=e=>{document.body.classList.toggle('edit');e.target.classList.toggle('on')};
 $('#theme').onclick=()=>{const r=document.documentElement,d=getComputedStyle(r).getPropertyValue('--bg').trim()==${JSON.stringify(c.darkBg)};r.dataset.theme=d?'light':'dark'};
-$('#scenar').onclick=()=>{RES.forEach(([k,n,d,m,rech])=>{if(rech)S.res[k]=m});say('<b>Nouveau scénario</b> : pouvoirs rechargés.')};
+function rechargeScenario(){
+  RES.forEach(([k,n,d,m,rech])=>{if(rech)S.res[k]=m});
+  S.magicItems.forEach(m=>{if((m.maxCharges||0)>0&&m.rechargeOnScenario!==false)m.charges=m.maxCharges});
+  renderLists();
+}
+$('#scenar').onclick=()=>{rechargeScenario();say('<b>Nouveau scénario</b> : pouvoirs et objets magiques rechargés.')};
 $('#rest').onclick=()=>{S.pv=S.pvMax;say('<b>Repos</b> : PV au maximum.')};
+
+// ---- gestion journal des sessions
+function openNewSessionForm(prefillSummary=''){
+  $('#sess-edit-id').value='';
+  $('#sess-form-title').textContent='Nouvelle entrée de scénario';
+  $('#sess-title').value='';
+  $('#sess-date').value='Scénario '+(S.sessions.length+1);
+  $('#sess-rewards').value='';
+  $('#sess-summary').value=prefillSummary;
+  $('#sess-form').classList.add('open');
+  $('#sess-title').focus();
+}
+$('#toggle-sess-form').onclick=()=>{
+  if($('#sess-form').classList.contains('open'))$('#sess-form').classList.remove('open');
+  else openNewSessionForm();
+};
+$('#cancel-sess-btn').onclick=()=>$('#sess-form').classList.remove('open');
+$('#save-sess-btn').onclick=()=>{
+  const title=$('#sess-title').value.trim()||('Scénario '+(S.sessions.length+1));
+  const date=$('#sess-date').value.trim();
+  const rewards=$('#sess-rewards').value.trim();
+  const summary=$('#sess-summary').value.trim();
+  const editIdx=$('#sess-edit-id').value;
+  if(editIdx!==''){
+    S.sessions[+editIdx]={...S.sessions[+editIdx],title,date,rewards,summary};
+  }else{
+    S.sessions.unshift({id:'s_'+Date.now().toString(36),title,date,rewards,summary});
+  }
+  $('#sess-form').classList.remove('open');
+  renderSessions();
+  change();
+};
+$('#archive-notes-btn').onclick=()=>{
+  const currentNotes=(S.notes||'').trim();
+  switchSheetTab('sessions');
+  openNewSessionForm(currentNotes);
+};
 
 if($('#add-item'))$('#add-item').onclick=()=>{
   const inp=$('#new-item'),name=inp.value.trim();if(!name)return;
   const k=name.replace(/[^a-zA-Z0-9_]/g,'_')+'_'+Date.now().toString(36).slice(-3);
   S.items[k]=1;S.itemLabels=S.itemLabels||{};S.itemLabels[k]=name;inp.value='';renderLists();change();
 };
+if($('#add-gear'))$('#add-gear').onclick=()=>{
+  const inp=$('#new-gear'),cSel=$('#new-gear-cat'),eInp=$('#new-gear-expr'),name=inp.value.trim(),rawExpr=(eInp?.value||'').trim();if(!name)return;
+  const rawCat=cSel?cSel.value:(rawExpr?'Arme':'Équipement');
+  const cat=rawExpr&&rawCat==='Équipement'?'Arme':rawCat;
+  const expr=rawExpr||(cat==='Armure'?'1d4':cat==='Arme'?'1d6':'');
+  const k=name.replace(/[^a-zA-Z0-9_]/g,'_')+'_'+Date.now().toString(36).slice(-3);
+  S.gear[k]=1;S.gearLabels=S.gearLabels||{};S.gearLabels[k]=name;
+  S.gearMeta=S.gearMeta||{};S.gearMeta[k]={category:cat,expr,equipped:true};
+  inp.value='';if(eInp)eInp.value='';renderLists();change();
+};
 if($('#add-chasse'))$('#add-chasse').onclick=()=>{
   const inp=$('#new-chasse'),name=inp.value.trim();if(!name)return;
   const k=name.replace(/[^a-zA-Z0-9_]/g,'_')+'_'+Date.now().toString(36).slice(-3);
   S.chasse[k]=1;S.chasseLabels=S.chasseLabels||{};S.chasseLabels[k]=name;inp.value='';renderLists();change();
+};
+if($('#add-magic'))$('#add-magic').onclick=()=>{
+  const nInp=$('#new-magic-name'),sInp=$('#new-magic-slot'),eInp=$('#new-magic-expr'),dInp=$('#new-magic-desc'),mInp=$('#new-magic-max'),rInp=$('#new-magic-rech');
+  const name=nInp.value.trim();if(!name)return;
+  const maxC=Math.max(0,+(mInp?.value||0));
+  S.magicItems.push({name,slot:sInp.value.trim(),expr:(eInp?.value||'').trim(),desc:dInp.value.trim(),charges:maxC,maxCharges:maxC,rechargeOnScenario:rInp?rInp.checked:true,equipped:true});
+  nInp.value='';sInp.value='';if(eInp)eInp.value='';dInp.value='';if(mInp)mInp.value='0';renderLists();change();
+};
+if($('#add-skill'))$('#add-skill').onclick=()=>{
+  const nInp=$('#new-skill-name'),cSel=$('#new-skill-cat'),stSel=$('#new-skill-stat'),bInp=$('#new-skill-bonus'),dInp=$('#new-skill-desc');
+  const name=nInp.value.trim();if(!name)return;
+  S.skills.push({name,category:cSel?cSel.value:'Utilitaire',stat:stSel?stSel.value:'',bonus:+(bInp?.value||0),desc:dInp.value.trim()});
+  nInp.value='';dInp.value='';if(bInp)bInp.value='10';renderLists();change();
 };
 
 $('#export-save').onclick=()=>{
@@ -332,18 +882,32 @@ $('#export-save').onclick=()=>{
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=STORAGE_KEY+'-sauvegarde.json';a.click();URL.revokeObjectURL(a.href);
 };
+function exportPDF(){
+  const wasEdit=document.body.classList.contains('edit');
+  if(wasEdit)document.body.classList.remove('edit');
+  $$('.sheet-pane').forEach(p=>p.style.display='block');
+  $$('textarea').forEach(ta=>{ta.dataset.origH=ta.style.height||'';ta.style.height='auto';ta.style.height=(ta.scrollHeight+6)+'px'});
+  window.print();
+  $$('textarea').forEach(ta=>{ta.style.height=ta.dataset.origH||''});
+  $$('.sheet-pane').forEach(p=>p.style.display='');
+  if(wasEdit)document.body.classList.add('edit');
+}
+if($('#export-pdf'))$('#export-pdf').onclick=exportPDF;
+if($('#export-pdf-foot'))$('#export-pdf-foot').onclick=exportPDF;
+addEventListener('beforeprint',()=>{$$('.sheet-pane').forEach(p=>p.style.display='block');$$('textarea').forEach(ta=>{ta.style.height='auto';ta.style.height=(ta.scrollHeight+6)+'px'})});
+addEventListener('afterprint',()=>{$$('.sheet-pane').forEach(p=>p.style.display='');$$('textarea').forEach(ta=>{ta.style.height=ta.dataset.origH||''})});
 $('#import-save-btn').onclick=()=>$('#import-save-file').click();
 $('#import-save-file').onchange=e=>{
   const f=e.target.files[0];if(!f)return;
   const rd=new FileReader();
-  rd.onload=()=>{try{const d=JSON.parse(rd.result);merge(S,d);renderLists();change();say('<b>Sauvegarde chargée</b> avec succès.')}catch(err){alert('Fichier JSON invalide.')}};
+  rd.onload=()=>{try{const d=JSON.parse(rd.result);merge(S,d);renderLists();renderSessions();change();say('<b>Sauvegarde chargée</b> avec succès.')}catch(err){alert('Fichier JSON invalide.')}};
   rd.readAsText(f);e.target.value='';
 };
 
 let armed=false;const RL='Réinitialiser le scénario';
-$('#reset').onclick=e=>{if(!armed){armed=true;e.target.textContent='Confirmer ? (PV, pouvoirs, conditions, notes)';setTimeout(()=>{armed=false;e.target.textContent=RL},5000);return}
-  S.pv=S.pvMax;RES.forEach(([k,n,d,m,rech])=>{if(rech)S.res[k]=m});S.cond='';S.notes='';S.log=[];
-  $('#last').textContent='Scénario réinitialisé : stats, caractéristiques et consommables conservés.';
+$('#reset').onclick=e=>{if(!armed){armed=true;e.target.textContent='Confirmer ? (PV, pouvoirs/objets, conditions, notes)';setTimeout(()=>{armed=false;e.target.textContent=RL},5000);return}
+  S.pv=S.pvMax;rechargeScenario();S.cond='';S.notes='';S.log=[];
+  $('#last').textContent='Scénario réinitialisé : stats, caractéristiques, historique et consommables conservés.';
   armed=false;e.target.textContent=RL;change()};
 sync();
 </script>

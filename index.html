@@ -42,9 +42,10 @@
       <nav class="tabs">
         <button class="tab-btn active" data-tab="tab-identity">1. Identité &amp; Thème</button>
         <button class="tab-btn" data-tab="tab-stats">2. Statut &amp; Caractéristiques</button>
-        <button class="tab-btn" data-tab="tab-combat">3. Dés, Armes &amp; Pouvoirs</button>
-        <button class="tab-btn" data-tab="tab-inventory">4. Inventaire &amp; Chasse</button>
-        <button class="tab-btn" data-tab="tab-export">5. Notes &amp; Export</button>
+        <button class="tab-btn" data-tab="tab-combat">3. Dés, Armes, Compétences &amp; Pouvoirs</button>
+        <button class="tab-btn" data-tab="tab-inventory">4. Objets magiques &amp; Inventaire</button>
+        <button class="tab-btn" data-tab="tab-lore">5. Historique &amp; Sessions</button>
+        <button class="tab-btn" data-tab="tab-export">6. Notes &amp; Export</button>
       </nav>
 
       <!-- Onglet 1 : Identité & Thème -->
@@ -65,6 +66,26 @@
             <div class="field">
               <label for="char-storage-key">Identifiant de sauvegarde navigateur</label>
               <input type="text" id="char-storage-key" placeholder="Ex : elara-v1">
+            </div>
+            <div class="field">
+              <label for="char-gender">Genre</label>
+              <input type="text" id="char-gender" placeholder="Ex : Féminin">
+            </div>
+            <div class="field">
+              <label for="char-age">Âge</label>
+              <input type="text" id="char-age" placeholder="Ex : 28 ans">
+            </div>
+            <div class="field">
+              <label for="char-height">Taille</label>
+              <input type="text" id="char-height" placeholder="Ex : 1m72">
+            </div>
+            <div class="field">
+              <label for="char-weight">Poids</label>
+              <input type="text" id="char-weight" placeholder="Ex : 58 kg">
+            </div>
+            <div class="field">
+              <label for="char-rank">Grade / Rang</label>
+              <input type="text" id="char-rank" placeholder="Ex : Éclaireuse vétérane">
             </div>
           </div>
         </div>
@@ -137,10 +158,13 @@
         </div>
 
         <div class="section-card">
-          <div class="section-header">
-            <h2>Caractéristiques (Jet d100 ≤ valeur)</h2>
+          <div class="section-header" style="flex-wrap:wrap;gap:8px">
+            <div>
+              <h2>Caractéristiques (Jet d100 ≤ valeur)</h2>
+              <div id="stats-xp-budget" style="font-size:12px;color:var(--mute);margin-top:3px"></div>
+            </div>
             <div style="display:flex;gap:6px">
-              <button class="btn btn-sm" id="roll-all-stats-btn" title="Tirer aléatoirement entre 30 et 70">🎲 Tirage aléatoire</button>
+              <button class="btn btn-sm" id="roll-all-stats-btn" title="Tirer aléatoirement entre 30 et 70 sans dépasser l'Expérience totale">🎲 Tirage aléatoire</button>
               <button class="btn btn-sm" id="add-stat-btn">+ Ajouter une caractéristique</button>
             </div>
           </div>
@@ -148,7 +172,7 @@
         </div>
       </div>
 
-      <!-- Onglet 3 : Dés, Armes & Pouvoirs -->
+      <!-- Onglet 3 : Dés, Armes, Compétences & Pouvoirs -->
       <div class="tab-content" id="tab-combat">
         <div class="section-card">
           <div class="section-header">
@@ -157,6 +181,15 @@
           </div>
           <p style="margin:0 0 10px;font-size:12px;color:var(--mute)">Format des dés : <code>1d10+1</code>, <code>2d6+3</code>, <code>1d8</code>, <code>1d4-1</code>…</p>
           <div class="item-list" id="weapons-list"></div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header">
+            <h2>Compétences (Jet d100 sous Caractéristique + Bonus)</h2>
+            <button class="btn btn-sm" id="add-skill-btn">+ Ajouter une compétence</button>
+          </div>
+          <p style="margin:0 0 10px;font-size:12px;color:var(--mute)">Associez chaque compétence à une caractéristique (avec un bonus de maîtrise) ou laissez-la en talent passif.</p>
+          <div class="item-list" id="skills-list"></div>
         </div>
 
         <div class="section-card">
@@ -179,8 +212,16 @@
         </div>
       </div>
 
-      <!-- Onglet 4 : Inventaire & Chasse -->
+      <!-- Onglet 4 : Objets magiques & Inventaire -->
       <div class="tab-content" id="tab-inventory">
+        <div class="section-card">
+          <div class="section-header">
+            <h2>✦ Objets magiques &amp; Reliques</h2>
+            <button class="btn btn-sm" id="add-magic-btn">+ Ajouter un objet magique</button>
+          </div>
+          <div class="item-list" id="magic-items-list"></div>
+        </div>
+
         <div class="section-card">
           <div class="section-header">
             <h2>Configuration des sections d'inventaire</h2>
@@ -188,41 +229,91 @@
           <div class="form-grid">
             <div class="field">
               <label for="inv-section-title">Titre de la grande section</label>
-              <input type="text" id="inv-section-title" placeholder="Inventaire consommable">
+              <input type="text" id="inv-section-title" placeholder="Inventaire &amp; Équipement">
             </div>
             <div class="field">
-              <label for="items-card-title">Sous-titre Carte 1 (Consommables)</label>
-              <input type="text" id="items-card-title" placeholder="Consommables">
+              <label for="items-card-title">Sous-titre Carte gauche (Consommables)</label>
+              <input type="text" id="items-card-title" placeholder="Inventaire consommable">
             </div>
             <div class="field">
-              <label for="secondary-card-title">Sous-titre Carte 2 (Chasse / Autre)</label>
-              <input type="text" id="secondary-card-title" placeholder="Tableau de chasse">
+              <label for="gear-card-title">Sous-titre Carte droite (Non consommables)</label>
+              <input type="text" id="gear-card-title" placeholder="Inventaire non consommable">
             </div>
           </div>
-          <label style="display:inline-flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer;font-size:13px">
-            <input type="checkbox" id="show-secondary-card" checked>
-            Afficher la seconde carte (Tableau de chasse / Trophées / Sorts)
-          </label>
         </div>
 
         <div class="section-card">
           <div class="section-header">
-            <h2>Liste 1 : Consommables &amp; Équipement</h2>
-            <button class="btn btn-sm" id="add-item-btn">+ Ajouter un objet</button>
+            <h2>Liste 1 : Inventaire consommable</h2>
+            <button class="btn btn-sm" id="add-item-btn">+ Ajouter un consommable</button>
           </div>
           <div class="item-list" id="items-list"></div>
         </div>
 
         <div class="section-card">
           <div class="section-header">
-            <h2>Liste 2 : Tableau de chasse / Compteurs secondaires</h2>
-            <button class="btn btn-sm" id="add-chasse-btn">+ Ajouter une entrée</button>
+            <h2>Liste 2 : Inventaire non consommable (Objets classiques)</h2>
+            <button class="btn btn-sm" id="add-gear-btn">+ Ajouter un objet classique</button>
           </div>
-          <div class="item-list" id="chasse-list"></div>
+          <div class="item-list" id="gear-list"></div>
         </div>
       </div>
 
-      <!-- Onglet 5 : Notes & Export -->
+      <!-- Onglet 5 : Historique & Sessions -->
+      <div class="tab-content" id="tab-lore">
+        <div class="section-card">
+          <div class="section-header">
+            <h2>📜 Historique &amp; Lore du personnage</h2>
+          </div>
+          <div class="field" style="margin-bottom:12px">
+            <label for="lore-backstory">Origines &amp; Histoire du personnage</label>
+            <textarea id="lore-backstory" rows="4" placeholder="Passé, origines, événements marquants avant le début de la campagne…"></textarea>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="lore-appearance">Apparence, Personnalité &amp; Objectifs</label>
+              <textarea id="lore-appearance" rows="4" placeholder="Description physique, caractère, motivations…"></textarea>
+            </div>
+            <div class="field">
+              <label for="lore-relations">Alliés, Contacts &amp; Relations</label>
+              <textarea id="lore-relations" rows="4" placeholder="PNJ importants, factions, mentors, ennemis…"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header">
+            <h2>🏆 Tableau de chasse / Hauts faits</h2>
+            <button class="btn btn-sm" id="add-chasse-btn">+ Ajouter une entrée</button>
+          </div>
+          <div class="form-grid" style="margin-bottom:10px">
+            <div class="field">
+              <label for="secondary-card-title">Titre de la section dans l'onglet Historique</label>
+              <input type="text" id="secondary-card-title" placeholder="Tableau de chasse">
+            </div>
+            <div class="field" style="justify-content:flex-end">
+              <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--ink)">
+                <input type="checkbox" id="show-secondary-card" checked>
+                Afficher le tableau de chasse dans l'onglet Historique &amp; Lore
+              </label>
+            </div>
+          </div>
+          <div class="item-list" id="chasse-list"></div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header">
+            <h2>📖 Journal des scénarios &amp; sessions effectuées</h2>
+            <button class="btn btn-sm" id="add-session-btn">+ Ajouter un scénario</button>
+          </div>
+          <p style="margin:0 0 10px;font-size:12px;color:var(--mute)">
+            Vous pouvez pré-remplir les scénarios ici ou les ajouter directement depuis la fiche finale pendant vos parties.
+          </p>
+          <div class="item-list" id="sessions-list"></div>
+        </div>
+      </div>
+
+      <!-- Onglet 6 : Notes & Export -->
       <div class="tab-content" id="tab-export">
         <div class="section-card">
           <div class="section-header">
@@ -253,6 +344,10 @@
           </div>
         </div>
       </div>
+
+      <footer style="text-align:center;font-family:Georgia,serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);border-top:1px solid var(--line);padding:12px 16px;margin-top:auto">
+        Compagnie Française de Systèmes et Algorithmes
+      </footer>
     </section>
 
     <!-- Panneau Aperçu Interactif en direct -->

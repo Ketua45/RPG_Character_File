@@ -1,0 +1,23 @@
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node / temporary artifacts
+node_modules/
+npm-debug.log*
+*.tmp
+*.bak
+
+# Legacy examples
+legacy_exemple/
+legacy_exemples/
+
+
