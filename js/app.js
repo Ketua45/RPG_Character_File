@@ -153,6 +153,14 @@ function renderEditor() {
 
   renderItemsList();
   renderChasseList();
+  renderSessionsList();
+
+  if (!currentChar.lore) {
+    currentChar.lore = { backstory: "", appearance: "", relations: "" };
+  }
+  $("#lore-backstory").value = currentChar.lore.backstory || "";
+  $("#lore-appearance").value = currentChar.lore.appearance || "";
+  $("#lore-relations").value = currentChar.lore.relations || "";
 
   $("#char-cond").value = currentChar.cond || "";
   $("#char-notes").value = currentChar.notes || "";
@@ -324,10 +332,33 @@ function renderChasseList() {
   });
 }
 
-function bindListEvents(container, arr, rerenderFn, customSetter) {
+function renderSessionsList() {
+  const container = $("#sessions-list");
+  if (!container) return;
+  if (!Array.isArray(currentChar.sessions)) {
+    currentChar.sessions = [];
+  }
+  container.innerHTML = currentChar.sessions.map((s, idx) => `
+    <div class="list-row" data-idx="${idx}" style="flex-direction:column;align-items:stretch;gap:6px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="text" class="grow" style="font-weight:700" data-field="title" value="${escapeHtml(s.title || "")}" placeholder="Nom du scénario (ex: Les Ombres de Bois-Maudit)">
+        <input type="text" style="width:140px" data-field="date" value="${escapeHtml(s.date || "")}" placeholder="Date / Scénario #">
+        <input type="text" style="width:160px" data-field="rewards" value="${escapeHtml(s.rewards || "")}" placeholder="Gains (+XP, +PO…)">
+        <button class="icon-btn" data-action="up" title="Monter" ${idx === 0 ? "disabled" : ""}>↑</button>
+        <button class="icon-btn" data-action="down" title="Descendre" ${idx === currentChar.sessions.length - 1 ? "disabled" : ""}>↓</button>
+        <button class="icon-btn del" data-action="del" title="Supprimer">×</button>
+      </div>
+      <textarea rows="2" data-field="summary" placeholder="Résumé du scénario, faits marquants, PNJ rencontrés…" style="width:100%;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 8px;resize:vertical">${escapeHtml(s.summary || "")}</textarea>
+    </div>
+  `).join("");
+
+  bindListEvents(container, currentChar.sessions, renderSessionsList, null, "sessions");
+}
+
+function bindListEvents(container, arr, rerenderFn, customSetter, previewTabHint = null) {
   container.querySelectorAll(".list-row").forEach(row => {
     const idx = Number(row.dataset.idx);
-    row.querySelectorAll("input, select").forEach(inp => {
+    row.querySelectorAll("input, select, textarea").forEach(inp => {
       inp.addEventListener("input", e => {
         const field = e.target.dataset.field;
         if (!field) return;
@@ -336,7 +367,7 @@ function bindListEvents(container, arr, rerenderFn, customSetter) {
           customSetter(arr[idx], field, val);
         }
         arr[idx][field] = val;
-        onCharUpdated();
+        onCharUpdated(false, previewTabHint);
       });
     });
 
@@ -351,20 +382,20 @@ function bindListEvents(container, arr, rerenderFn, customSetter) {
           [arr[idx + 1], arr[idx]] = [arr[idx], arr[idx + 1]];
         }
         rerenderFn();
-        onCharUpdated();
+        onCharUpdated(true, previewTabHint);
       });
     });
   });
 }
 
 // ---- Mise à jour & Aperçu en direct
-function onCharUpdated(immediate = false) {
+function onCharUpdated(immediate = false, forceSheetTab = null) {
   saveRoster();
   renderRosterSelect();
-  updatePreview(immediate);
+  updatePreview(immediate, forceSheetTab);
 }
 
-function updatePreview(immediate = false) {
+function updatePreview(immediate = false, forceSheetTab = null) {
   clearTimeout(previewTimer);
   const run = () => {
     if (!currentChar) return;
@@ -373,10 +404,19 @@ function updatePreview(immediate = false) {
     } catch (e) {}
     const frame = $("#preview-frame");
     let prevScrollY = 0;
+    let activeSheetTab = forceSheetTab || "play";
     try {
-      prevScrollY = frame.contentWindow ? frame.contentWindow.scrollY : 0;
+      if (frame.contentWindow) {
+        prevScrollY = frame.contentWindow.scrollY || 0;
+      }
+      if (!forceSheetTab && frame.contentDocument) {
+        const activeBtn = frame.contentDocument.querySelector(".sheet-tab.active");
+        if (activeBtn && activeBtn.dataset.sheetTab) {
+          activeSheetTab = activeBtn.dataset.sheetTab;
+        }
+      }
     } catch (e) {}
-    const html = generateStandaloneHTML(currentChar, true);
+    const html = generateStandaloneHTML(currentChar, true, activeSheetTab);
     frame.onload = () => {
       try {
         if (prevScrollY > 0 && frame.contentWindow) {
@@ -509,6 +549,13 @@ document.addEventListener("DOMContentLoaded", () => {
       $$(".tab-content").forEach(c => c.classList.remove("active"));
       btn.classList.add("active");
       $("#" + btn.dataset.tab).classList.add("active");
+      // Basculer automatiquement l'onglet de la fiche dans l'aperçu
+      const frame = $("#preview-frame");
+      try {
+        if (frame.contentWindow && frame.contentWindow.switchSheetTab) {
+          frame.contentWindow.switchSheetTab(btn.dataset.tab === "tab-lore" ? "lore" : "play");
+        }
+      } catch (e) {}
     });
   });
 
@@ -649,6 +696,39 @@ document.addEventListener("DOMContentLoaded", () => {
     currentChar.chasse.push({ key: k, label: "Nouvelle entrée", value: 1 });
     renderChasseList();
     onCharUpdated();
+  });
+
+  // Champs Historique & Sessions
+  $("#lore-backstory").addEventListener("input", e => {
+    currentChar.lore = currentChar.lore || {};
+    currentChar.lore.backstory = e.target.value;
+    onCharUpdated(false, "lore");
+  });
+
+  $("#lore-appearance").addEventListener("input", e => {
+    currentChar.lore = currentChar.lore || {};
+    currentChar.lore.appearance = e.target.value;
+    onCharUpdated(false, "lore");
+  });
+
+  $("#lore-relations").addEventListener("input", e => {
+    currentChar.lore = currentChar.lore || {};
+    currentChar.lore.relations = e.target.value;
+    onCharUpdated(false, "lore");
+  });
+
+  $("#add-session-btn").addEventListener("click", () => {
+    currentChar.sessions = currentChar.sessions || [];
+    const num = currentChar.sessions.length + 1;
+    currentChar.sessions.unshift({
+      id: "scen_" + Date.now().toString(36).slice(-4),
+      title: `Scénario ${num} : Titre de l'aventure`,
+      date: `Scénario ${num}`,
+      rewards: "+50 XP · +100 PO",
+      summary: "Résumé de la session, événements marquants et rencontres…"
+    });
+    renderSessionsList();
+    onCharUpdated(true, "sessions");
   });
 
   $("#char-cond").addEventListener("input", e => {

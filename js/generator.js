@@ -18,7 +18,7 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
-function generateStandaloneHTML(char, isPreview = false) {
+function generateStandaloneHTML(char, isPreview = false, initialTab = "play") {
   const c = char.theme?.colors || THEME_PRESETS.forest.colors;
   const defaultMode = char.theme?.defaultMode || "auto";
   const htmlThemeAttr = defaultMode === "light" ? ' data-theme="light"' : defaultMode === "dark" ? ' data-theme="dark"' : "";
@@ -26,7 +26,6 @@ function generateStandaloneHTML(char, isPreview = false) {
   const storageKey = char.storageKey || (slugify(char.name) + "-v1");
   const title = `${char.name || "Personnage"} – Suivi de fiche`;
 
-  // Construire les structures de données compatibles avec le format de la fiche
   const hpVital = char.vitals.find(v => v.isHp) || char.vitals[0] || { key: "pv", label: "Points de vie", value: 15, max: 15, color: "--red", isHp: true, showBar: true };
 
   const defObj = {
@@ -34,6 +33,12 @@ function generateStandaloneHTML(char, isPreview = false) {
     pvMax: Number(hpVital.max) || Number(hpVital.value) || 15,
     cond: char.cond || "",
     notes: char.notes || "",
+    lore: {
+      backstory: char.lore?.backstory || "",
+      appearance: char.lore?.appearance || "",
+      relations: char.lore?.relations || ""
+    },
+    sessions: Array.isArray(char.sessions) ? structuredClone(char.sessions) : [],
     stats: {},
     res: {},
     items: {},
@@ -65,13 +70,9 @@ function generateStandaloneHTML(char, isPreview = false) {
   });
 
   const resArr = [];
-  const rechargeKeys = [];
   char.resources.forEach(r => {
     defObj.res[r.key] = Number(r.value) ?? Number(r.max) ?? 0;
     resArr.push([r.key, r.name, r.desc || "", Number(r.max) || 1, r.rechargeOnScenario !== false ? 1 : 0]);
-    if (r.rechargeOnScenario !== false) {
-      rechargeKeys.push([r.key, Number(r.max) || 1]);
-    }
   });
 
   const itemsObj = {};
@@ -108,7 +109,7 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 Calibri,Carlito,system-ui,sans-serif}
 main{max-width:980px;margin:0 auto;padding:0 14px 40px}
-h1,h2{font-family:Georgia,serif;margin:0}
+h1,h2,h3{font-family:Georgia,serif;margin:0}
 h2{font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:var(--acc);border-bottom:2px solid var(--gold);padding-bottom:4px;margin:22px 0 10px}
 .hero{background:var(--band);color:var(--on);border:2px solid var(--gold);border-radius:12px;padding:14px;display:flex;gap:14px;align-items:center;margin-top:14px}
 .hero img{width:76px;height:114px;object-fit:cover;border-radius:8px;border:2px solid var(--gold);flex-shrink:0}
@@ -122,8 +123,17 @@ button{font:inherit;cursor:pointer;color:inherit}
 .bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border:1px solid var(--gold);border-radius:10px;margin-top:10px;padding:8px 12px;display:flex;gap:12px;align-items:center;box-shadow:0 2px 8px #0002}
 .bar b{color:var(--red);font-family:Georgia,serif;white-space:nowrap}
 #last{flex:1;font-size:14px}
+/* Onglets de navigation de la fiche */
+.sheet-tabs{display:flex;gap:8px;margin-top:14px;border-bottom:2px solid var(--line);padding-bottom:8px;overflow-x:auto}
+.sheet-tab{background:var(--card);color:var(--mute);border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-family:Georgia,serif;font-size:14px;font-weight:700;letter-spacing:.04em;white-space:nowrap;transition:all .15s}
+.sheet-tab:hover{border-color:var(--gold);color:var(--ink)}
+.sheet-tab.active{background:var(--band);color:var(--on);border-color:var(--gold)}
+.sheet-tab .cnt{display:inline-block;background:var(--gold);color:#1b1b1b;border-radius:99px;padding:1px 7px;font-size:11px;margin-left:5px;font-family:Calibri,sans-serif}
+.sheet-pane{display:none}
+.sheet-pane.active{display:block}
 .ok{color:var(--mid);font-weight:700}.ko{color:var(--red);font-weight:700}
 .grid{display:grid;gap:10px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
 .g3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
 .g7{grid-template-columns:repeat(auto-fit,minmax(104px,1fr))}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
@@ -165,10 +175,25 @@ body.edit .add-box{display:flex}
 #log li{padding:2px 0;border-bottom:1px dotted var(--line)}
 textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;resize:vertical}
 .txt{min-height:0}
+.lore-area{min-height:130px;line-height:1.5}
+/* Journal des sessions */
+.sess-list{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.sess-card{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:10px;padding:12px 14px}
+.sess-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;border-bottom:1px dashed var(--line);padding-bottom:6px;margin-bottom:8px}
+.sess-head h3{font-size:17px;color:var(--acc)}
+.sess-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px}
+.badge{background:var(--soft);color:var(--acc);border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-weight:700}
+.badge.gold{background:var(--band);color:var(--on);border-color:var(--gold)}
+.sess-body{white-space:pre-wrap;font-size:14px;line-height:1.5;color:var(--ink)}
+.sess-form{background:var(--card);border:1px solid var(--gold);border-radius:10px;padding:12px;margin-bottom:14px;display:none}
+.sess-form.open{display:block}
+.sess-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:8px}
+.empty-msg{text-align:center;padding:24px;color:var(--mute);font-style:italic;background:var(--card);border:1px dashed var(--line);border-radius:10px;margin-top:10px}
 .foot{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
 .mini{font-size:12px;color:var(--mute);margin-top:6px}
 @media print{
-  .tools,.foot,.exp,#quick,#saved{display:none!important}
+  .tools,.foot,.exp,#quick,#saved,.sheet-tabs{display:none!important}
+  .sheet-pane{display:block!important;margin-bottom:20px}
   .bar{position:static;box-shadow:none}
   body{background:#fff;color:#000}
 }
@@ -184,41 +209,95 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
 
 <div class="bar"><span>PV <b id="barpv"></b></span><div id="last">Cliquez sur une caractéristique ou une arme pour lancer les dés.</div></div>
 
-<h2>Statut</h2>
-<div class="grid g3" id="vitals"></div>
+<nav class="sheet-tabs" aria-label="Sections de la fiche">
+  <button class="sheet-tab ${initialTab === "play" ? "active" : ""}" data-sheet-tab="play">⚔ Fiche de jeu</button>
+  <button class="sheet-tab ${initialTab === "lore" ? "active" : ""}" data-sheet-tab="lore">📜 Historique &amp; Lore</button>
+  <button class="sheet-tab ${initialTab === "sessions" ? "active" : ""}" data-sheet-tab="sessions">📖 Sessions <span class="cnt" id="sess-count">0</span></button>
+</nav>
 
-<h2>Caractéristiques <span style="font-size:11px;letter-spacing:0;text-transform:none;color:var(--mute)">· clic = jet d100 (réussite si ≤ valeur)</span></h2>
-<div class="grid g7" id="stats"></div>
+<!-- ONGLET 1 : FICHE DE JEU -->
+<section class="sheet-pane ${initialTab === "play" ? "active" : ""}" id="pane-play">
+  <h2>Statut</h2>
+  <div class="grid g3" id="vitals"></div>
 
-<h2>Dés &amp; armes</h2>
-<div class="card">
-  <div class="dice" id="weapons"></div>
-  <div class="dice" id="quick" style="margin-top:10px"></div>
-  <div class="exp"><input id="expr" placeholder="Jet libre : 2d6+3" aria-label="Jet libre"><button class="btn" id="go">Lancer</button></div>
-  <ul id="log"></ul>
-</div>
+  <h2>Caractéristiques <span style="font-size:11px;letter-spacing:0;text-transform:none;color:var(--mute)">· clic = jet d100 (réussite si ≤ valeur)</span></h2>
+  <div class="grid g7" id="stats"></div>
 
-<h2>Charges &amp; pouvoirs</h2>
-<div class="card" id="res"></div>
-<div class="foot"><button class="btn" id="scenar">${escapeHtml(char.scenarioBtnLabel || "⟳ Nouveau scénario (recharge pouvoirs)")}</button><button class="btn" id="rest">${escapeHtml(char.restBtnLabel || "☾ Repos : PV au max")}</button></div>
-
-<h2>${escapeHtml(char.inventoryTitle || "Inventaire consommable")}</h2>
-<div class="grid g3">
+  <h2>Dés &amp; armes</h2>
   <div class="card">
-    <div class="lbl">${escapeHtml(char.itemsCardTitle || "Consommables")}</div>
-    <div id="items"></div>
-    <div class="add-box"><input id="new-item" placeholder="Nouvel objet…"><button class="btn" id="add-item">+ Ajouter</button></div>
+    <div class="dice" id="weapons"></div>
+    <div class="dice" id="quick" style="margin-top:10px"></div>
+    <div class="exp"><input id="expr" placeholder="Jet libre : 2d6+3" aria-label="Jet libre"><button class="btn" id="go">Lancer</button></div>
+    <ul id="log"></ul>
   </div>
-  ${char.showSecondaryCard !== false ? `<div class="card">
-    <div class="lbl">${escapeHtml(char.secondaryCardTitle || "Tableau de chasse")}</div>
-    <div id="chasse"></div>
-    <div class="add-box"><input id="new-chasse" placeholder="Nouvelle entrée…"><button class="btn" id="add-chasse">+ Ajouter</button></div>
-  </div>` : ""}
-</div>
 
-<h2>Conditions &amp; notes</h2>
-<input class="txt" data-k="cond" placeholder="Conditions spéciales (poison, saignement…)" style="margin-bottom:8px">
-<textarea data-k="notes" placeholder="Notes de session, PNJ rencontrés, indices…"></textarea>
+  <h2>Charges &amp; pouvoirs</h2>
+  <div class="card" id="res"></div>
+  <div class="foot"><button class="btn" id="scenar">${escapeHtml(char.scenarioBtnLabel || "⟳ Nouveau scénario (recharge pouvoirs)")}</button><button class="btn" id="rest">${escapeHtml(char.restBtnLabel || "☾ Repos : PV au max")}</button></div>
+
+  <h2>${escapeHtml(char.inventoryTitle || "Inventaire consommable")}</h2>
+  <div class="grid g3">
+    <div class="card">
+      <div class="lbl">${escapeHtml(char.itemsCardTitle || "Consommables")}</div>
+      <div id="items"></div>
+      <div class="add-box"><input id="new-item" placeholder="Nouvel objet…"><button class="btn" id="add-item">+ Ajouter</button></div>
+    </div>
+    ${char.showSecondaryCard !== false ? `<div class="card">
+      <div class="lbl">${escapeHtml(char.secondaryCardTitle || "Tableau de chasse")}</div>
+      <div id="chasse"></div>
+      <div class="add-box"><input id="new-chasse" placeholder="Nouvelle entrée…"><button class="btn" id="add-chasse">+ Ajouter</button></div>
+    </div>` : ""}
+  </div>
+
+  <h2>Conditions &amp; notes de session</h2>
+  <input class="txt" data-k="cond" placeholder="Conditions spéciales (poison, saignement…)" style="margin-bottom:8px">
+  <textarea data-k="notes" placeholder="Notes de la session en cours, PNJ rencontrés, indices…"></textarea>
+  <div style="margin-top:6px;display:flex;justify-content:flex-end">
+    <button class="btn" id="archive-notes-btn">📖 Archiver ces notes dans le journal des sessions</button>
+  </div>
+</section>
+
+<!-- ONGLET 2 : HISTORIQUE & LORE -->
+<section class="sheet-pane ${initialTab === "lore" ? "active" : ""}" id="pane-lore">
+  <h2>Origines &amp; Histoire du personnage</h2>
+  <textarea class="lore-area" data-k="lore.backstory" style="min-height:160px" placeholder="Racontez l'histoire, le passé, l'origine et les événements fondateurs de votre personnage…"></textarea>
+
+  <div class="grid g2" style="margin-top:6px">
+    <div>
+      <h2>Apparence, Personnalité &amp; Objectifs</h2>
+      <textarea class="lore-area" data-k="lore.appearance" placeholder="Signes particuliers, caractère, motivations, secrets…"></textarea>
+    </div>
+    <div>
+      <h2>Alliés, Contacts &amp; Relations</h2>
+      <textarea class="lore-area" data-k="lore.relations" placeholder="Compagnons de route, mentors, factions, ennemis jurés…"></textarea>
+    </div>
+  </div>
+</section>
+
+<!-- ONGLET 3 : JOURNAL DES SESSIONS / SCÉNARIOS -->
+<section class="sheet-pane ${initialTab === "sessions" ? "active" : ""}" id="pane-sessions">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:22px 0 10px;border-bottom:2px solid var(--gold);padding-bottom:6px">
+    <h2 style="margin:0;border:0;padding:0">Journal des scénarios &amp; sessions</h2>
+    <button class="btn" id="toggle-sess-form">+ Ajouter un scénario / une session</button>
+  </div>
+
+  <div class="sess-form" id="sess-form">
+    <div class="lbl" id="sess-form-title">Nouvelle entrée de scénario</div>
+    <input type="hidden" id="sess-edit-id" value="">
+    <div class="sess-form-grid">
+      <input class="txt" id="sess-title" placeholder="Nom du scénario (ex : Les Ombres de Bois-Maudit)">
+      <input class="txt" id="sess-date" placeholder="Session / Date (ex : Scénario 2 · Oct. 2026)">
+      <input class="txt" id="sess-rewards" placeholder="Gains (ex : +60 XP, +150 PO, Anneau…)">
+    </div>
+    <textarea id="sess-summary" placeholder="Résumé de l'aventure, boss vaincus, choix importants, PNJ rencontrés…"></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+      <button class="btn" id="cancel-sess-btn">Annuler</button>
+      <button class="btn on" id="save-sess-btn">✓ Enregistrer la session</button>
+    </div>
+  </div>
+
+  <div id="sessions-container" class="sess-list"></div>
+</section>
 
 <div class="foot">
   <button class="btn" id="reset">Réinitialiser le scénario</button>
@@ -241,13 +320,23 @@ const CHASSE_LAB=${JSON.stringify(chasseLabels)};
 const WEAP=${JSON.stringify(weapArr)};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const get=(o,p)=>p.split('.').reduce((a,k)=>a?.[k],o);
-const put=(o,p,v)=>{const k=p.split('.'),l=k.pop();k.reduce((a,x)=>a[x],o)[l]=v};
+const put=(o,p,v)=>{const k=p.split('.'),l=k.pop();k.reduce((a,x)=>a[x]||(a[x]={}),o)[l]=v};
 const merge=(a,b)=>{for(const k in b){a[k]=b[k]&&typeof b[k]=='object'&&!Array.isArray(b[k])&&a[k]?merge(a[k],b[k]):b[k]}return a};
+const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 let S=structuredClone(DEF);
 if(!IS_PREVIEW){try{const t=localStorage.getItem(STORAGE_KEY);if(t)merge(S,JSON.parse(t))}catch(e){}}
 if(!S.itemLabels)S.itemLabels={...ITEMS};
 if(!S.chasseLabels)S.chasseLabels={...CHASSE_LAB};
+if(!S.lore)S.lore={backstory:'',appearance:'',relations:''};
+if(!Array.isArray(S.sessions))S.sessions=[];
 const clean=()=>{for(const k in S.stats)if(!(k in DEF.stats))delete S.stats[k]};clean();
+
+// ---- navigation onglets fiche
+function switchSheetTab(tab){
+  $$('.sheet-tab').forEach(b=>b.classList.toggle('active',b.dataset.sheetTab===tab));
+  $$('.sheet-pane').forEach(p=>p.classList.toggle('active',p.id==='pane-'+tab));
+}
+$$('.sheet-tab').forEach(b=>b.onclick=()=>switchSheetTab(b.dataset.sheetTab));
 
 // ---- construction
 $('#vitals').innerHTML=VIT.map(([n,k,m,c,hp,bar])=>\`<div class="card" style="--c:var(\${c})"><div class="lbl">\${n}</div><div class="big"><button class="st" data-k="\${k}" data-d="-1" aria-label="moins">−</button><input type="number" data-k="\${k}" aria-label="\${n}"><button class="st" data-k="\${k}" data-d="1" aria-label="plus">+</button></div>\${hp?\`<div class="sub">PV de base / max : <b data-v="pvMax"></b></div><input class="ed" type="number" data-k="pvMax" aria-label="PV max"><div class="meter"><i id="pvbar"></i></div>\`:m?\`<div class="sub">/ <b>\${m}</b></div>\`+(bar?\`<div class="meter"><i data-meter="\${k}" data-max="\${m}"></i></div>\`:''):'<div class="sub">&nbsp;</div>'}</div>\`).join('');
@@ -262,6 +351,28 @@ function renderLists(){
   if($('#chasse'))$('#chasse').innerHTML=Object.keys(S.chasse).map(k=>stepRow('chasse.'+k,S.chasseLabels?.[k]||CHASSE_LAB[k]||k,'chasse')).join('');
 }
 renderLists();
+
+function renderSessions(){
+  $('#sess-count').textContent=S.sessions.length;
+  const cont=$('#sessions-container');
+  if(!S.sessions.length){
+    cont.innerHTML='<div class="empty-msg">Aucun scénario enregistré pour le moment. Cliquez sur « + Ajouter un scénario » pour garder la trace de vos aventures !</div>';
+    return;
+  }
+  cont.innerHTML=S.sessions.map((s,idx)=>\`<article class="sess-card">
+    <div class="sess-head">
+      <h3>\${esc(s.title||'Scénario sans titre')}</h3>
+      <div class="sess-meta">
+        \${s.date?\`<span class="badge">\${esc(s.date)}</span>\`:''}
+        \${s.rewards?\`<span class="badge gold">\${esc(s.rewards)}</span>\`:''}
+        <button class="btn" style="padding:2px 7px;font-size:12px" data-edit-sess="\${idx}" title="Modifier">✎</button>
+        <button class="btn" style="padding:2px 7px;font-size:12px;color:var(--red)" data-del-sess="\${idx}" title="Supprimer">×</button>
+      </div>
+    </div>
+    <div class="sess-body">\${esc(s.summary||'')}</div>
+  </article>\`).join('');
+}
+renderSessions();
 
 // ---- synchro
 function sync(){
@@ -301,6 +412,24 @@ document.addEventListener('click',e=>{
     if(grp=='chasse'){delete S.chasse[rawKey];if(S.chasseLabels)delete S.chasseLabels[rawKey]}
     renderLists();return change();
   }
+  if(b.dataset.editSess!==undefined){
+    const idx=+b.dataset.editSess,s=S.sessions[idx];if(!s)return;
+    $('#sess-edit-id').value=String(idx);
+    $('#sess-form-title').textContent='Modifier le scénario';
+    $('#sess-title').value=s.title||'';
+    $('#sess-date').value=s.date||'';
+    $('#sess-rewards').value=s.rewards||'';
+    $('#sess-summary').value=s.summary||'';
+    $('#sess-form').classList.add('open');
+    return;
+  }
+  if(b.dataset.delSess!==undefined){
+    const idx=+b.dataset.delSess;
+    if(confirm('Supprimer cette entrée du journal des sessions ?')){
+      S.sessions.splice(idx,1);renderSessions();change();
+    }
+    return;
+  }
   if(b.dataset.d){const k=b.dataset.k;put(S,k,clamp(k,(+get(S,k)||0)+ +b.dataset.d));return change()}
   if(b.dataset.roll)return rollStat(b.dataset.roll);
   if(b.dataset.expr)return rollExpr(b.dataset.expr,b.dataset.name);
@@ -316,6 +445,43 @@ $('#edit').onclick=e=>{document.body.classList.toggle('edit');e.target.classList
 $('#theme').onclick=()=>{const r=document.documentElement,d=getComputedStyle(r).getPropertyValue('--bg').trim()==${JSON.stringify(c.darkBg)};r.dataset.theme=d?'light':'dark'};
 $('#scenar').onclick=()=>{RES.forEach(([k,n,d,m,rech])=>{if(rech)S.res[k]=m});say('<b>Nouveau scénario</b> : pouvoirs rechargés.')};
 $('#rest').onclick=()=>{S.pv=S.pvMax;say('<b>Repos</b> : PV au maximum.')};
+
+// ---- gestion journal des sessions
+function openNewSessionForm(prefillSummary=''){
+  $('#sess-edit-id').value='';
+  $('#sess-form-title').textContent='Nouvelle entrée de scénario';
+  $('#sess-title').value='';
+  $('#sess-date').value='Scénario '+(S.sessions.length+1);
+  $('#sess-rewards').value='';
+  $('#sess-summary').value=prefillSummary;
+  $('#sess-form').classList.add('open');
+  $('#sess-title').focus();
+}
+$('#toggle-sess-form').onclick=()=>{
+  if($('#sess-form').classList.contains('open'))$('#sess-form').classList.remove('open');
+  else openNewSessionForm();
+};
+$('#cancel-sess-btn').onclick=()=>$('#sess-form').classList.remove('open');
+$('#save-sess-btn').onclick=()=>{
+  const title=$('#sess-title').value.trim()||('Scénario '+(S.sessions.length+1));
+  const date=$('#sess-date').value.trim();
+  const rewards=$('#sess-rewards').value.trim();
+  const summary=$('#sess-summary').value.trim();
+  const editIdx=$('#sess-edit-id').value;
+  if(editIdx!==''){
+    S.sessions[+editIdx]={...S.sessions[+editIdx],title,date,rewards,summary};
+  }else{
+    S.sessions.unshift({id:'s_'+Date.now().toString(36),title,date,rewards,summary});
+  }
+  $('#sess-form').classList.remove('open');
+  renderSessions();
+  change();
+};
+$('#archive-notes-btn').onclick=()=>{
+  const currentNotes=(S.notes||'').trim();
+  switchSheetTab('sessions');
+  openNewSessionForm(currentNotes);
+};
 
 if($('#add-item'))$('#add-item').onclick=()=>{
   const inp=$('#new-item'),name=inp.value.trim();if(!name)return;
@@ -337,14 +503,14 @@ $('#import-save-btn').onclick=()=>$('#import-save-file').click();
 $('#import-save-file').onchange=e=>{
   const f=e.target.files[0];if(!f)return;
   const rd=new FileReader();
-  rd.onload=()=>{try{const d=JSON.parse(rd.result);merge(S,d);renderLists();change();say('<b>Sauvegarde chargée</b> avec succès.')}catch(err){alert('Fichier JSON invalide.')}};
+  rd.onload=()=>{try{const d=JSON.parse(rd.result);merge(S,d);renderLists();renderSessions();change();say('<b>Sauvegarde chargée</b> avec succès.')}catch(err){alert('Fichier JSON invalide.')}};
   rd.readAsText(f);e.target.value='';
 };
 
 let armed=false;const RL='Réinitialiser le scénario';
 $('#reset').onclick=e=>{if(!armed){armed=true;e.target.textContent='Confirmer ? (PV, pouvoirs, conditions, notes)';setTimeout(()=>{armed=false;e.target.textContent=RL},5000);return}
   S.pv=S.pvMax;RES.forEach(([k,n,d,m,rech])=>{if(rech)S.res[k]=m});S.cond='';S.notes='';S.log=[];
-  $('#last').textContent='Scénario réinitialisé : stats, caractéristiques et consommables conservés.';
+  $('#last').textContent='Scénario réinitialisé : stats, caractéristiques, historique et consommables conservés.';
   armed=false;e.target.textContent=RL;change()};
 sync();
 </script>

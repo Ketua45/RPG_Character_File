@@ -277,7 +277,21 @@ const CHARACTER_TEMPLATES = {
       { key: "Bouquetin", label: "Bouquetin", value: 1 }
     ],
     cond: "",
-    notes: ""
+    notes: "",
+    lore: {
+      backstory: "Née à la lisière des forêts profondes, Elara a appris très tôt l'art du pistage et de la survie. Accompagnée de son fidèle chien de chasse, elle met ses talents de trappeuse et d'archère au service des expéditions les plus périlleuses.",
+      appearance: "Regard perçant, cape de cuir patinée par les intempéries, arc d'Aric toujours à portée de main. Pragmatique, prudente et loyale envers ses compagnons de route.",
+      relations: "• Elaïth : allié mystique (recharge l'Anneau de foudre à chaque scénario)\n• Compagnons d'armes de la compagnie"
+    },
+    sessions: [
+      {
+        id: "scen-1",
+        title: "Les Pistes de la Forêt Sombre",
+        date: "Scénario 1",
+        rewards: "+120 XP · +350 PO",
+        summary: "Traque d'un ours géant et d'une bande de gobelins embusqués dans les ravins."
+      }
+    ]
   },
 
   vierge: {
@@ -332,7 +346,13 @@ const CHARACTER_TEMPLATES = {
       { key: "Boss", label: "Ennemis notables", value: 0 }
     ],
     cond: "",
-    notes: ""
+    notes: "",
+    lore: {
+      backstory: "",
+      appearance: "",
+      relations: ""
+    },
+    sessions: []
   },
 
   guerrier: {
@@ -393,7 +413,13 @@ const CHARACTER_TEMPLATES = {
       { key: "Trolls", label: "Troll des collines", value: 1 }
     ],
     cond: "",
-    notes: ""
+    notes: "",
+    lore: {
+      backstory: "Ancien sergent d'une compagnie franche des Marches du Nord, Garrick parcourt les routes comme mercenaire et garde du corps.",
+      appearance: "Carrure massive, cicatrice sur la joue gauche, armure de plates cabossée mais soigneusement entretenue.",
+      relations: "• Guilde des Mercenaires du Bastion\n• Forgeron Thorek (allié)"
+    },
+    sessions: []
   },
 
   mage: {
@@ -454,6 +480,12 @@ const CHARACTER_TEMPLATES = {
       { key: "Artefacts", label: "Reliques identifiées", value: 4 }
     ],
     cond: "",
-    notes: ""
+    notes: "",
+    lore: {
+      backstory: "Diplômée de la Tour d'Argent, Lyra parcours le monde à la recherche de reliques anciennes et de grimoires oubliés.",
+      appearance: "Toge bleu nuit brodée de fils d'argent, bâton serti d'une pierre de lune.",
+      relations: "• Ordre des Érudits de la Tour d'Argent"
+    },
+    sessions: []
   }
 };

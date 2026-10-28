@@ -44,7 +44,8 @@
         <button class="tab-btn" data-tab="tab-stats">2. Statut &amp; Caractéristiques</button>
         <button class="tab-btn" data-tab="tab-combat">3. Dés, Armes &amp; Pouvoirs</button>
         <button class="tab-btn" data-tab="tab-inventory">4. Inventaire &amp; Chasse</button>
-        <button class="tab-btn" data-tab="tab-export">5. Notes &amp; Export</button>
+        <button class="tab-btn" data-tab="tab-lore">5. Historique &amp; Sessions</button>
+        <button class="tab-btn" data-tab="tab-export">6. Notes &amp; Export</button>
       </nav>
 
       <!-- Onglet 1 : Identité & Thème -->
@@ -222,7 +223,41 @@
         </div>
       </div>
 
-      <!-- Onglet 5 : Notes & Export -->
+      <!-- Onglet 5 : Historique & Sessions -->
+      <div class="tab-content" id="tab-lore">
+        <div class="section-card">
+          <div class="section-header">
+            <h2>📜 Historique &amp; Lore du personnage</h2>
+          </div>
+          <div class="field" style="margin-bottom:12px">
+            <label for="lore-backstory">Origines &amp; Histoire du personnage</label>
+            <textarea id="lore-backstory" rows="4" placeholder="Passé, origines, événements marquants avant le début de la campagne…"></textarea>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="lore-appearance">Apparence, Personnalité &amp; Objectifs</label>
+              <textarea id="lore-appearance" rows="4" placeholder="Description physique, caractère, motivations…"></textarea>
+            </div>
+            <div class="field">
+              <label for="lore-relations">Alliés, Contacts &amp; Relations</label>
+              <textarea id="lore-relations" rows="4" placeholder="PNJ importants, factions, mentors, ennemis…"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header">
+            <h2>📖 Journal des scénarios &amp; sessions effectuées</h2>
+            <button class="btn btn-sm" id="add-session-btn">+ Ajouter un scénario</button>
+          </div>
+          <p style="margin:0 0 10px;font-size:12px;color:var(--mute)">
+            Vous pouvez pré-remplir les scénarios ici ou les ajouter directement depuis la fiche finale pendant vos parties.
+          </p>
+          <div class="item-list" id="sessions-list"></div>
+        </div>
+      </div>
+
+      <!-- Onglet 6 : Notes & Export -->
       <div class="tab-content" id="tab-export">
         <div class="section-card">
           <div class="section-header">
