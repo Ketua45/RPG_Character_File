@@ -69,9 +69,15 @@ function loadRoster() {
     }
     if (!Array.isArray(ch.skills)) {
       if (ch.id === "elara-lorens") ch.skills = structuredClone(CHARACTER_TEMPLATES.elara.skills);
-      else if (ch.id === "thorin-gardefer") ch.skills = structuredClone(CHARACTER_TEMPLATES.guerrier.skills);
-      else if (ch.id === "lysandre-val") ch.skills = structuredClone(CHARACTER_TEMPLATES.mage.skills);
+      else if (ch.id === "garrick-vane") ch.skills = structuredClone(CHARACTER_TEMPLATES.guerrier.skills);
+      else if (ch.id === "lyra-valen") ch.skills = structuredClone(CHARACTER_TEMPLATES.mage.skills);
       else ch.skills = [];
+    }
+    if (!Array.isArray(ch.gear)) {
+      if (ch.id === "elara-lorens") ch.gear = structuredClone(CHARACTER_TEMPLATES.elara.gear);
+      else if (ch.id === "garrick-vane") ch.gear = structuredClone(CHARACTER_TEMPLATES.guerrier.gear);
+      else if (ch.id === "lyra-valen") ch.gear = structuredClone(CHARACTER_TEMPLATES.mage.gear);
+      else ch.gear = [];
     }
   });
 
@@ -181,12 +187,14 @@ function renderEditor() {
   $("#scenar-btn-label").value = currentChar.scenarioBtnLabel || "⟳ Nouveau scénario (recharge pouvoirs)";
   $("#rest-btn-label").value = currentChar.restBtnLabel || "☾ Repos : PV au max";
 
-  $("#inv-section-title").value = currentChar.inventoryTitle || "Inventaire consommable";
-  $("#items-card-title").value = currentChar.itemsCardTitle || "Consommables";
+  $("#inv-section-title").value = currentChar.inventoryTitle || "Inventaire & Équipement";
+  $("#items-card-title").value = currentChar.itemsCardTitle || "Inventaire consommable";
+  $("#gear-card-title").value = currentChar.gearCardTitle || "Inventaire non consommable";
   $("#show-secondary-card").checked = currentChar.showSecondaryCard !== false;
   $("#secondary-card-title").value = currentChar.secondaryCardTitle || "Tableau de chasse";
 
   renderItemsList();
+  renderGearList();
   renderChasseList();
   renderMagicItemsList();
   renderSessionsList();
@@ -383,7 +391,7 @@ function renderItemsList() {
   const container = $("#items-list");
   container.innerHTML = currentChar.items.map((it, idx) => `
     <div class="list-row" data-idx="${idx}">
-      <input type="text" class="grow" data-field="label" value="${escapeHtml(it.label)}" placeholder="Nom de l'objet (ex: Rations)">
+      <input type="text" class="grow" data-field="label" value="${escapeHtml(it.label)}" placeholder="Nom du consommable (ex: Rations)">
       <label style="font-size:11px;color:var(--mute)">Qté
         <input type="number" class="num-input" data-field="value" value="${it.value}" min="0">
       </label>
@@ -393,7 +401,28 @@ function renderItemsList() {
     </div>
   `).join("");
 
-  bindListEvents(container, currentChar.items, renderItemsList);
+  bindListEvents(container, currentChar.items, renderItemsList, null, "play");
+}
+
+function renderGearList() {
+  const container = $("#gear-list");
+  if (!container) return;
+  if (!Array.isArray(currentChar.gear)) {
+    currentChar.gear = [];
+  }
+  container.innerHTML = currentChar.gear.map((g, idx) => `
+    <div class="list-row" data-idx="${idx}">
+      <input type="text" class="grow" data-field="label" value="${escapeHtml(g.label)}" placeholder="Nom de l'objet classique (ex: Corde 10m)">
+      <label style="font-size:11px;color:var(--mute)">Qté
+        <input type="number" class="num-input" data-field="value" value="${g.value}" min="0">
+      </label>
+      <button class="icon-btn" data-action="up" title="Monter" ${idx === 0 ? "disabled" : ""}>↑</button>
+      <button class="icon-btn" data-action="down" title="Descendre" ${idx === currentChar.gear.length - 1 ? "disabled" : ""}>↓</button>
+      <button class="icon-btn del" data-action="del" title="Supprimer">×</button>
+    </div>
+  `).join("");
+
+  bindListEvents(container, currentChar.gear, renderGearList, null, "play");
 }
 
 function renderChasseList() {
@@ -415,7 +444,7 @@ function renderChasseList() {
       item.label = val;
       item.key = val || ("Entree_" + Date.now());
     }
-  });
+  }, "lore");
 }
 
 function renderMagicItemsList() {
@@ -810,31 +839,44 @@ document.addEventListener("DOMContentLoaded", () => {
 
   $("#items-card-title").addEventListener("input", e => {
     currentChar.itemsCardTitle = e.target.value;
-    onCharUpdated();
+    onCharUpdated(false, "play");
+  });
+
+  $("#gear-card-title").addEventListener("input", e => {
+    currentChar.gearCardTitle = e.target.value;
+    onCharUpdated(false, "play");
   });
 
   $("#show-secondary-card").addEventListener("change", e => {
     currentChar.showSecondaryCard = e.target.checked;
-    onCharUpdated(true);
+    onCharUpdated(true, "lore");
   });
 
   $("#secondary-card-title").addEventListener("input", e => {
     currentChar.secondaryCardTitle = e.target.value;
-    onCharUpdated();
+    onCharUpdated(false, "lore");
   });
 
   $("#add-item-btn").addEventListener("click", () => {
     const k = "item_" + Date.now().toString(36).slice(-4);
-    currentChar.items.push({ key: k, label: "Nouvel objet", value: 1 });
+    currentChar.items.push({ key: k, label: "Nouvel objet consommable", value: 1 });
     renderItemsList();
-    onCharUpdated();
+    onCharUpdated(true, "play");
+  });
+
+  $("#add-gear-btn").addEventListener("click", () => {
+    currentChar.gear = currentChar.gear || [];
+    const k = "gear_" + Date.now().toString(36).slice(-4);
+    currentChar.gear.push({ key: k, label: "Nouvel objet classique", value: 1 });
+    renderGearList();
+    onCharUpdated(true, "play");
   });
 
   $("#add-chasse-btn").addEventListener("click", () => {
     const k = "Trophee_" + Date.now().toString(36).slice(-4);
     currentChar.chasse.push({ key: k, label: "Nouvelle entrée", value: 1 });
     renderChasseList();
-    onCharUpdated();
+    onCharUpdated(true, "lore");
   });
 
   $("#add-magic-btn").addEventListener("click", () => {

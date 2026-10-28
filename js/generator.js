@@ -45,6 +45,7 @@ function generateStandaloneHTML(char, isPreview = false, initialTab = "play") {
     statBonus: {},
     res: {},
     items: {},
+    gear: {},
     chasse: {},
     t: 0,
     log: []
@@ -85,6 +86,12 @@ function generateStandaloneHTML(char, isPreview = false, initialTab = "play") {
   char.items.forEach(it => {
     defObj.items[it.key] = Number(it.value) || 0;
     itemsObj[it.key] = it.label;
+  });
+
+  const gearObj = {};
+  (char.gear || []).forEach(g => {
+    defObj.gear[g.key] = Number(g.value) || 0;
+    gearObj[g.key] = g.label;
   });
 
   const chasseLabels = {};
@@ -273,18 +280,18 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
     </div>
   </div>
 
-  <h2>${escapeHtml(char.inventoryTitle || "Inventaire consommable")}</h2>
-  <div class="grid g3">
+  <h2>${escapeHtml(char.inventoryTitle || "Inventaire & Équipement")}</h2>
+  <div class="grid g2">
     <div class="card">
-      <div class="lbl">${escapeHtml(char.itemsCardTitle || "Consommables")}</div>
+      <div class="lbl">${escapeHtml(char.itemsCardTitle || "Inventaire consommable")}</div>
       <div id="items"></div>
-      <div class="add-box"><input id="new-item" placeholder="Nouvel objet…"><button class="btn" id="add-item">+ Ajouter</button></div>
+      <div class="add-box"><input id="new-item" placeholder="Nouvel objet consommable…"><button class="btn" id="add-item">+ Ajouter</button></div>
     </div>
-    ${char.showSecondaryCard !== false ? `<div class="card">
-      <div class="lbl">${escapeHtml(char.secondaryCardTitle || "Tableau de chasse")}</div>
-      <div id="chasse"></div>
-      <div class="add-box"><input id="new-chasse" placeholder="Nouvelle entrée…"><button class="btn" id="add-chasse">+ Ajouter</button></div>
-    </div>` : ""}
+    <div class="card">
+      <div class="lbl">${escapeHtml(char.gearCardTitle || "Inventaire non consommable")}</div>
+      <div id="gear"></div>
+      <div class="add-box"><input id="new-gear" placeholder="Nouvel objet classique…"><button class="btn" id="add-gear">+ Ajouter</button></div>
+    </div>
   </div>
 
   <h2>Conditions &amp; notes de session</h2>
@@ -310,6 +317,13 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
       <textarea class="lore-area" data-k="lore.relations" placeholder="Compagnons de route, mentors, factions, ennemis jurés…"></textarea>
     </div>
   </div>
+
+  ${char.showSecondaryCard !== false ? `
+  <h2>${escapeHtml(char.secondaryCardTitle || "Tableau de chasse")}</h2>
+  <div class="card">
+    <div id="chasse"></div>
+    <div class="add-box"><input id="new-chasse" placeholder="Nouvelle entrée…"><button class="btn" id="add-chasse">+ Ajouter</button></div>
+  </div>` : ""}
 </section>
 
 <!-- ONGLET 3 : JOURNAL DES SESSIONS / SCÉNARIOS -->
@@ -354,6 +368,7 @@ const LAB=${JSON.stringify(labObj)};
 const VIT=${JSON.stringify(vitArr)};
 const RES=${JSON.stringify(resArr)};
 const ITEMS=${JSON.stringify(itemsObj)};
+const GEAR=${JSON.stringify(gearObj)};
 const CHASSE_LAB=${JSON.stringify(chasseLabels)};
 const WEAP=${JSON.stringify(weapArr)};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -364,6 +379,8 @@ const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 let S=structuredClone(DEF);
 if(!IS_PREVIEW){try{const t=localStorage.getItem(STORAGE_KEY);if(t)merge(S,JSON.parse(t))}catch(e){}}
 if(!S.itemLabels)S.itemLabels={...ITEMS};
+if(!S.gear)S.gear={};
+if(!S.gearLabels)S.gearLabels={...GEAR};
 if(!S.chasseLabels)S.chasseLabels={...CHASSE_LAB};
 if(!S.lore)S.lore={backstory:'',appearance:'',relations:''};
 if(!Array.isArray(S.sessions))S.sessions=[];
@@ -391,6 +408,7 @@ if($('#new-skill-stat')){$('#new-skill-stat').innerHTML='<option value="">(Passi
 const stepRow=(k,n,grp)=>\`<div class="row"><button class="del-row" data-del="\${k}" data-grp="\${grp}" title="Supprimer">×</button><span>\${n}</span><button class="st" data-k="\${k}" data-d="-1">−</button><input type="number" data-k="\${k}"><button class="st" data-k="\${k}" data-d="1">+</button></div>\`;
 function renderLists(){
   if($('#items'))$('#items').innerHTML=Object.keys(S.items).map(k=>stepRow('items.'+k,S.itemLabels?.[k]||ITEMS[k]||k,'items')).join('');
+  if($('#gear'))$('#gear').innerHTML=Object.keys(S.gear).map(k=>stepRow('gear.'+k,S.gearLabels?.[k]||GEAR[k]||k,'gear')).join('');
   if($('#chasse'))$('#chasse').innerHTML=Object.keys(S.chasse).map(k=>stepRow('chasse.'+k,S.chasseLabels?.[k]||CHASSE_LAB[k]||k,'chasse')).join('');
   if($('#skills')){
     if(!S.skills.length){
@@ -532,6 +550,7 @@ document.addEventListener('click',e=>{
   if(b.dataset.del){
     const grp=b.dataset.grp,rawKey=b.dataset.del.split('.').slice(1).join('.');
     if(grp=='items'){delete S.items[rawKey];if(S.itemLabels)delete S.itemLabels[rawKey]}
+    if(grp=='gear'){delete S.gear[rawKey];if(S.gearLabels)delete S.gearLabels[rawKey]}
     if(grp=='chasse'){delete S.chasse[rawKey];if(S.chasseLabels)delete S.chasseLabels[rawKey]}
     renderLists();return change();
   }
@@ -637,6 +656,11 @@ if($('#add-item'))$('#add-item').onclick=()=>{
   const inp=$('#new-item'),name=inp.value.trim();if(!name)return;
   const k=name.replace(/[^a-zA-Z0-9_]/g,'_')+'_'+Date.now().toString(36).slice(-3);
   S.items[k]=1;S.itemLabels=S.itemLabels||{};S.itemLabels[k]=name;inp.value='';renderLists();change();
+};
+if($('#add-gear'))$('#add-gear').onclick=()=>{
+  const inp=$('#new-gear'),name=inp.value.trim();if(!name)return;
+  const k=name.replace(/[^a-zA-Z0-9_]/g,'_')+'_'+Date.now().toString(36).slice(-3);
+  S.gear[k]=1;S.gearLabels=S.gearLabels||{};S.gearLabels[k]=name;inp.value='';renderLists();change();
 };
 if($('#add-chasse'))$('#add-chasse').onclick=()=>{
   const inp=$('#new-chasse'),name=inp.value.trim();if(!name)return;

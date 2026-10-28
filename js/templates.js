@@ -259,18 +259,22 @@ const CHARACTER_TEMPLATES = {
     ],
     scenarioBtnLabel: "⟳ Nouveau scénario (recharge anneaux)",
     restBtnLabel: "☾ Repos : PV au max",
-    inventoryTitle: "Inventaire consommable",
-    itemsCardTitle: "Consommables",
+    inventoryTitle: "Inventaire & Équipement",
+    itemsCardTitle: "Inventaire consommable",
     items: [
       { key: "collets", label: "Collets", value: 9 },
       { key: "rations", label: "Rations", value: 7 },
       { key: "rationsChien", label: "Rations (chien)", value: 6 },
+      { key: "fleches", label: "Créations de flèches", value: 8 },
+      { key: "fiole", label: "Fiole corrosive", value: 1 }
+    ],
+    gearCardTitle: "Inventaire non consommable",
+    gear: [
       { key: "pieges", label: "Pièges à loup", value: 2 },
       { key: "clochettes", label: "Clochettes", value: 5 },
       { key: "sifflets", label: "Sifflets de chasse", value: 20 },
-      { key: "fleches", label: "Créations de flèches", value: 8 },
       { key: "cordes", label: "Cordes renforcées", value: 3 },
-      { key: "fiole", label: "Fiole corrosive", value: 1 }
+      { key: "couverture", label: "Cape & couverture de bivouac", value: 1 }
     ],
     showSecondaryCard: true,
     secondaryCardTitle: "Tableau de chasse",
@@ -347,13 +351,19 @@ const CHARACTER_TEMPLATES = {
     ],
     scenarioBtnLabel: "⟳ Nouveau scénario (recharge pouvoirs)",
     restBtnLabel: "☾ Repos : PV au max",
-    inventoryTitle: "Inventaire consommable",
-    itemsCardTitle: "Consommables",
+    inventoryTitle: "Inventaire & Équipement",
+    itemsCardTitle: "Inventaire consommable",
     items: [
       { key: "rations", label: "Rations", value: 5 },
       { key: "torches", label: "Torches", value: 3 },
-      { key: "potions", label: "Potions de soin", value: 1 },
-      { key: "cordes", label: "Corde (10m)", value: 1 }
+      { key: "potions", label: "Potions de soin", value: 1 }
+    ],
+    gearCardTitle: "Inventaire non consommable",
+    gear: [
+      { key: "cordes", label: "Corde (10m)", value: 1 },
+      { key: "sacCouchage", label: "Sac de couchage", value: 1 },
+      { key: "briquet", label: "Briquet à silex", value: 1 },
+      { key: "outre", label: "Outre d'eau", value: 1 }
     ],
     showSecondaryCard: true,
     secondaryCardTitle: "Tableau de chasse & Hauts faits",
@@ -417,14 +427,20 @@ const CHARACTER_TEMPLATES = {
     ],
     scenarioBtnLabel: "⟳ Nouveau scénario (recharge postures & runes)",
     restBtnLabel: "☾ Repos : PV au max",
-    inventoryTitle: "Équipement & Trophées",
-    itemsCardTitle: "Consommables de campagne",
+    inventoryTitle: "Inventaire & Équipement",
+    itemsCardTitle: "Inventaire consommable",
     items: [
       { key: "rations", label: "Rations de fer", value: 6 },
       { key: "bandages", label: "Bandages & cataplasmes", value: 4 },
-      { key: "pierreAffuter", label: "Pierres à affûter", value: 3 },
       { key: "huileArmure", label: "Huile d'entretien", value: 2 },
       { key: "tordBoyaux", label: "Flasque de tord-boyaux", value: 2 }
+    ],
+    gearCardTitle: "Inventaire non consommable",
+    gear: [
+      { key: "armurePlates", label: "Demi-plate renforcée", value: 1 },
+      { key: "bouclierAcier", label: "Écu d'acier du Bastion", value: 1 },
+      { key: "pierreAffuter", label: "Pierres à affûter", value: 3 },
+      { key: "grappin", label: "Grappin & corde de chanvre", value: 1 }
     ],
     showSecondaryCard: true,
     secondaryCardTitle: "Tableau de chasse",
@@ -493,14 +509,21 @@ const CHARACTER_TEMPLATES = {
     ],
     scenarioBtnLabel: "⟳ Nouveau scénario (méditation arcanique)",
     restBtnLabel: "☾ Repos : PV au max",
-    inventoryTitle: "Composants & Savoirs",
-    itemsCardTitle: "Composants & Foles",
+    inventoryTitle: "Inventaire & Équipement",
+    itemsCardTitle: "Inventaire consommable",
     items: [
       { key: "poudreArgent", label: "Poudre d'argent", value: 5 },
       { key: "encens", label: "Encens de lune", value: 4 },
       { key: "parchemins", label: "Parchemins vierges", value: 6 },
       { key: "potionMana", label: "Élixir de clarté", value: 2 },
       { key: "rations", label: "Rations elfiques", value: 5 }
+    ],
+    gearCardTitle: "Inventaire non consommable",
+    gear: [
+      { key: "grimoire", label: "Grimoire de la Tour d'Argent", value: 1 },
+      { key: "plumeEncre", label: "Nécessaire de calligraphie", value: 1 },
+      { key: "loupeRunique", label: "Loupe d'expertise", value: 1 },
+      { key: "lanterne", label: "Lanterne sourde", value: 1 }
     ],
     showSecondaryCard: true,
     secondaryCardTitle: "Créatures étudiées",

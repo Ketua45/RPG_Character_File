@@ -206,37 +206,33 @@
           <div class="form-grid">
             <div class="field">
               <label for="inv-section-title">Titre de la grande section</label>
-              <input type="text" id="inv-section-title" placeholder="Inventaire consommable">
+              <input type="text" id="inv-section-title" placeholder="Inventaire &amp; Équipement">
             </div>
             <div class="field">
-              <label for="items-card-title">Sous-titre Carte 1 (Consommables)</label>
-              <input type="text" id="items-card-title" placeholder="Consommables">
+              <label for="items-card-title">Sous-titre Carte gauche (Consommables)</label>
+              <input type="text" id="items-card-title" placeholder="Inventaire consommable">
             </div>
             <div class="field">
-              <label for="secondary-card-title">Sous-titre Carte 2 (Chasse / Autre)</label>
-              <input type="text" id="secondary-card-title" placeholder="Tableau de chasse">
+              <label for="gear-card-title">Sous-titre Carte droite (Non consommables)</label>
+              <input type="text" id="gear-card-title" placeholder="Inventaire non consommable">
             </div>
           </div>
-          <label style="display:inline-flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer;font-size:13px">
-            <input type="checkbox" id="show-secondary-card" checked>
-            Afficher la seconde carte (Tableau de chasse / Trophées / Sorts)
-          </label>
         </div>
 
         <div class="section-card">
           <div class="section-header">
-            <h2>Liste 1 : Consommables &amp; Équipement</h2>
-            <button class="btn btn-sm" id="add-item-btn">+ Ajouter un objet</button>
+            <h2>Liste 1 : Inventaire consommable</h2>
+            <button class="btn btn-sm" id="add-item-btn">+ Ajouter un consommable</button>
           </div>
           <div class="item-list" id="items-list"></div>
         </div>
 
         <div class="section-card">
           <div class="section-header">
-            <h2>Liste 2 : Tableau de chasse / Compteurs secondaires</h2>
-            <button class="btn btn-sm" id="add-chasse-btn">+ Ajouter une entrée</button>
+            <h2>Liste 2 : Inventaire non consommable (Objets classiques)</h2>
+            <button class="btn btn-sm" id="add-gear-btn">+ Ajouter un objet classique</button>
           </div>
-          <div class="item-list" id="chasse-list"></div>
+          <div class="item-list" id="gear-list"></div>
         </div>
       </div>
 
@@ -260,6 +256,26 @@
               <textarea id="lore-relations" rows="4" placeholder="PNJ importants, factions, mentors, ennemis…"></textarea>
             </div>
           </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header">
+            <h2>🏆 Tableau de chasse / Hauts faits</h2>
+            <button class="btn btn-sm" id="add-chasse-btn">+ Ajouter une entrée</button>
+          </div>
+          <div class="form-grid" style="margin-bottom:10px">
+            <div class="field">
+              <label for="secondary-card-title">Titre de la section dans l'onglet Historique</label>
+              <input type="text" id="secondary-card-title" placeholder="Tableau de chasse">
+            </div>
+            <div class="field" style="justify-content:flex-end">
+              <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--ink)">
+                <input type="checkbox" id="show-secondary-card" checked>
+                Afficher le tableau de chasse dans l'onglet Historique &amp; Lore
+              </label>
+            </div>
+          </div>
+          <div class="item-list" id="chasse-list"></div>
         </div>
 
         <div class="section-card">
