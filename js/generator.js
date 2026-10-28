@@ -75,14 +75,20 @@ function generateStandaloneHTML(char, isPreview = false, initialTab = "play") {
   });
 
   const labObj = {};
+  let baseStatSum = 0;
   char.stats.forEach(st => {
     const rawBase = Number(st.value) || 50;
-    defObj.stats[st.key] = Math.max(30, Math.min(70, rawBase));
+    const clampedBase = Math.max(30, Math.min(70, rawBase));
+    defObj.stats[st.key] = clampedBase;
+    baseStatSum += clampedBase;
     defObj.statBonus[st.key] = Number(st.bonus) || 0;
     if (st.label && st.label !== st.key) {
       labObj[st.key] = st.label;
     }
   });
+  if (defObj.xp !== undefined && defObj.xp < Math.max(350, baseStatSum)) {
+    defObj.xp = Math.max(350, baseStatSum);
+  }
 
   const resArr = [];
   char.resources.forEach(r => {
@@ -276,7 +282,7 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
   <h2>Statut</h2>
   <div class="grid g3" id="vitals"></div>
 
-  <h2>Caractéristiques <span style="font-size:11px;letter-spacing:0;text-transform:none;color:var(--mute)">· base 30–70 + bonus ponctuel · clic = jet d100 (réussite si ≤ total)</span></h2>
+  <h2>Caractéristiques <span style="font-size:11px;letter-spacing:0;text-transform:none;color:var(--mute)">· base 30–70 (total <b id="stat-sum">0</b> / <b id="stat-xp">350</b> XP) · clic = jet d100 (réussite si ≤ total)</span></h2>
   <div class="grid g7" id="stats"></div>
 
   <h2>Dés &amp; armes</h2>
@@ -435,8 +441,14 @@ if(!Array.isArray(S.sessions))S.sessions=[];
 if(!Array.isArray(S.magicItems))S.magicItems=[];
 if(!Array.isArray(S.skills))S.skills=structuredClone(DEF.skills||[]);
 if(!S.statBonus)S.statBonus={};
-if((S.xp||0)<350)S.xp=350;
-const clean=()=>{for(const k in S.stats){if(!(k in DEF.stats))delete S.stats[k];else S.stats[k]=Math.max(30,Math.min(70,S.stats[k]))}};clean();
+const statSum=(excl='')=>Object.keys(DEF.stats).reduce((a,k)=>k===excl?a:a+(+(S.stats[k]||50)),0);
+const clean=()=>{
+  for(const k in S.stats){
+    if(!(k in DEF.stats))delete S.stats[k];
+    else S.stats[k]=Math.max(30,Math.min(70,S.stats[k]));
+  }
+  if((S.xp||0)<Math.max(350,statSum()))S.xp=Math.max(350,statSum());
+};clean();
 
 // ---- navigation onglets fiche
 function switchSheetTab(tab){
@@ -603,6 +615,8 @@ function sync(){
     const k=el.dataset.statSub,base=+(S.stats[k]||50),bon=+(S.statBonus?.[k]||0);
     el.innerHTML=bon?(\`Base \${base} <em>\${bon>0?'+'+bon:bon}</em>\`):\`Base \${base}\`;
   });
+  if($('#stat-sum'))$('#stat-sum').textContent=statSum();
+  if($('#stat-xp'))$('#stat-xp').textContent=S.xp||350;
   $$('[data-skill-tot]').forEach(el=>{
     const sk=S.skills[+el.dataset.skillTot];
     if(sk&&sk.stat&&sk.stat in DEF.stats){
@@ -626,8 +640,11 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='
 function change(){sync();save()}
 const clamp=(k,v)=>{
   if(k.startsWith('statBonus.'))return Math.max(-50,Math.min(50,v));
-  if(k.startsWith('stats.'))return Math.max(30,Math.min(70,v));
-  if(k=='xp')return Math.max(350,v);
+  if(k.startsWith('stats.')){
+    const sk=k.slice(6),maxXp=Math.max(30,(S.xp||350)-statSum(sk));
+    return Math.max(30,Math.min(70,maxXp,v));
+  }
+  if(k=='xp')return Math.max(350,statSum(),v);
   v=Math.max(0,v);
   if(k=='pv')v=Math.min(v,S.pvMax);
   const vf=VIT.find(x=>x[1]==k);if(vf&&vf[2]&&vf[2]!=='pvMax')v=Math.min(v,vf[2]);

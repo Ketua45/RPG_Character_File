@@ -19,6 +19,27 @@ function showToast(msg) {
   t._timer = setTimeout(() => t.classList.remove("show"), 2800);
 }
 
+function getCharTotalXp(ch) {
+  const xpVital = (ch?.vitals || []).find(v => v.key === "xp");
+  return Math.max(350, Number(xpVital?.value) || 350);
+}
+
+function getCharStatsBaseSum(ch, excludeIdx = -1) {
+  return (ch?.stats || []).reduce((acc, st, i) => {
+    if (i === excludeIdx) return acc;
+    return acc + Math.max(30, Math.min(70, Number(st.value) || 50));
+  }, 0);
+}
+
+function updateStatsBudgetUI() {
+  const el = $("#stats-xp-budget");
+  if (!el || !currentChar) return;
+  const sum = getCharStatsBaseSum(currentChar);
+  const xp = getCharTotalXp(currentChar);
+  const rem = xp - sum;
+  el.innerHTML = `Total des caractéristiques de base : <strong style="color:${rem < 0 ? "#e8786b" : "var(--gold)"}">${sum} / ${xp} XP</strong> (${rem >= 0 ? `Reste à répartir : <b>${rem}</b> pts` : `Dépassement : ${-rem} pts`})`;
+}
+
 function loadRoster() {
   try {
     const raw = localStorage.getItem(ROSTER_STORAGE_KEY);
@@ -60,6 +81,22 @@ function loadRoster() {
       }
       st.value = Math.max(30, Math.min(70, Number(st.value) || 50));
     });
+    // Vérifier que la somme des caractéristiques de base ne dépasse pas l'XP totale
+    const xpVal = getCharTotalXp(ch);
+    let statSum = getCharStatsBaseSum(ch);
+    if (statSum > xpVal) {
+      let excess = statSum - xpVal;
+      for (let i = ch.stats.length - 1; i >= 0 && excess > 0; i--) {
+        const st = ch.stats[i];
+        const canReduce = Math.max(0, st.value - 30);
+        const drop = Math.min(canReduce, excess);
+        if (drop > 0) {
+          st.value -= drop;
+          st.bonus = (Number(st.bonus) || 0) + drop;
+          excess -= drop;
+        }
+      }
+    }
     if (Array.isArray(ch.magicItems)) {
       ch.magicItems.forEach(m => {
         if (m.maxCharges === undefined) m.maxCharges = 0;
@@ -313,15 +350,21 @@ function renderVitalsList() {
     </div>
   `).join("");
 
-  bindListEvents(container, currentChar.vitals, renderVitalsList, (item, field, val) => {
-    if (field === "value" && item.key === "xp" && val < 350) {
-      return 350;
+  bindListEvents(container, currentChar.vitals, renderVitalsList, (item, field, val, row) => {
+    if (field === "value" && item.key === "xp") {
+      const minXp = Math.max(350, getCharStatsBaseSum(currentChar));
+      if (val < minXp) {
+        val = minXp;
+      }
+      setTimeout(updateStatsBudgetUI, 0);
+      return val;
     }
   });
 }
 
 function renderStatsList() {
   const container = $("#stats-list");
+  updateStatsBudgetUI();
   container.innerHTML = currentChar.stats.map((st, idx) => {
     const base = Math.max(30, Math.min(70, Number(st.value) || 50));
     const bonus = Number(st.bonus) || 0;
@@ -343,17 +386,32 @@ function renderStatsList() {
   `}).join("");
 
   bindListEvents(container, currentChar.stats, renderStatsList, (item, field, val, row) => {
+    const idx = Number(row?.dataset?.idx ?? -1);
     if (field === "label") {
       item.label = val;
       item.key = val.replace(/\./g, "").trim() || ("Stat" + Date.now());
+      renderSkillsList();
     }
     if (field === "value") {
-      val = Math.max(30, Math.min(70, val));
+      const totalXp = getCharTotalXp(currentChar);
+      const otherSum = getCharStatsBaseSum(currentChar, idx);
+      const maxAllowed = Math.min(70, Math.max(30, totalXp - otherSum));
+      if (val > maxAllowed) {
+        val = maxAllowed;
+        const inp = row?.querySelector("input[data-field='value']");
+        if (inp) inp.value = val;
+        if (maxAllowed < 70) {
+          showToast(`Maximum atteint : le total des caractéristiques ne peut pas dépasser l'Expérience (${totalXp} XP).`);
+        }
+      } else if (val < 30) {
+        val = 30;
+      }
     }
     const nextBase = field === "value" ? val : (Number(item.value) || 50);
     const nextBon = field === "bonus" ? val : (Number(item.bonus) || 0);
     const badge = row?.querySelector(".stat-tot-badge b");
     if (badge) badge.textContent = nextBase + nextBon;
+    setTimeout(updateStatsBudgetUI, 0);
     return val;
   });
 }
@@ -840,18 +898,39 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   $("#add-stat-btn").addEventListener("click", () => {
-    currentChar.stats.push({ key: "Nouvelle", label: "Nouvelle", value: 50, bonus: 0 });
+    const totalXp = getCharTotalXp(currentChar);
+    const curSum = getCharStatsBaseSum(currentChar);
+    if (curSum + 30 > totalXp) {
+      showToast(`Impossible d'ajouter une caractéristique : il faut au moins 30 XP disponibles (Actuel : ${curSum}/${totalXp} XP).`);
+      return;
+    }
+    const initVal = Math.min(50, Math.max(30, totalXp - curSum));
+    currentChar.stats.push({ key: "Nouvelle", label: "Nouvelle", value: initVal, bonus: 0 });
     renderStatsList();
+    renderSkillsList();
     onCharUpdated();
   });
 
   $("#roll-all-stats-btn").addEventListener("click", () => {
-    currentChar.stats.forEach(st => {
-      st.value = 30 + Math.floor(Math.random() * 41); // Entre 30 et 70
+    const n = currentChar.stats.length;
+    if (n === 0) return;
+    const totalXp = getCharTotalXp(currentChar);
+    // Tirer entre 30 et 70 tout en respectant la limite totale d'XP
+    const vals = currentChar.stats.map(() => 30 + Math.floor(Math.random() * 41));
+    let sum = vals.reduce((a, b) => a + b, 0);
+    while (sum > totalXp) {
+      const candidates = vals.map((v, i) => v > 30 ? i : -1).filter(i => i >= 0);
+      if (!candidates.length) break;
+      const pick = candidates[Math.floor(Math.random() * candidates.length)];
+      vals[pick]--;
+      sum--;
+    }
+    currentChar.stats.forEach((st, i) => {
+      st.value = vals[i];
     });
     renderStatsList();
     onCharUpdated(true);
-    showToast("Caractéristiques générées aléatoirement (30–70) !");
+    showToast(`Caractéristiques tirées aléatoirement (Total : ${sum} / ${totalXp} XP) !`);
   });
 
   $("#add-weapon-btn").addEventListener("click", () => {

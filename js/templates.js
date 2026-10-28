@@ -242,7 +242,7 @@ const CHARACTER_TEMPLATES = {
       { key: "Intel", label: "Intel.", value: 55, bonus: 0 },
       { key: "Volonté", label: "Volonté", value: 45, bonus: 0 },
       { key: "Social", label: "Social", value: 45, bonus: 0 },
-      { key: "Dextérité", label: "Dextérité", value: 70, bonus: 3 },
+      { key: "Dextérité", label: "Dextérité", value: 67, bonus: 6 },
       { key: "Perception", label: "Perception", value: 70, bonus: 0 }
     ],
     weapons: [
