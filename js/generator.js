@@ -41,6 +41,7 @@ function generateStandaloneHTML(char, isPreview = false, initialTab = "play") {
     sessions: Array.isArray(char.sessions) ? structuredClone(char.sessions) : [],
     magicItems: Array.isArray(char.magicItems) ? structuredClone(char.magicItems) : [],
     stats: {},
+    statBonus: {},
     res: {},
     items: {},
     chasse: {},
@@ -56,7 +57,8 @@ function generateStandaloneHTML(char, isPreview = false, initialTab = "play") {
       defObj.pvMax = Number(v.max) || Number(v.value) || 1;
       vitArr.push([v.label, "pv", "pvMax", v.color || "--red", 1, v.showBar ? 1 : 0]);
     } else {
-      defObj[k] = Number(v.value) || 0;
+      const rawVal = Number(v.value) || 0;
+      defObj[k] = k === "xp" ? Math.max(350, rawVal) : rawVal;
       const maxVal = Number(v.max) || 0;
       vitArr.push([v.label, k, maxVal, v.color || "--acc", 0, v.showBar ? 1 : 0]);
     }
@@ -64,7 +66,9 @@ function generateStandaloneHTML(char, isPreview = false, initialTab = "play") {
 
   const labObj = {};
   char.stats.forEach(st => {
-    defObj.stats[st.key] = Number(st.value) || 0;
+    const rawBase = Number(st.value) || 50;
+    defObj.stats[st.key] = Math.max(30, Math.min(70, rawBase));
+    defObj.statBonus[st.key] = Number(st.bonus) || 0;
     if (st.label && st.label !== st.key) {
       labObj[st.key] = st.label;
     }
@@ -152,6 +156,11 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .stat:hover{border-color:var(--gold)}
 .stat span{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);font-weight:700}
 .stat b{font:700 26px Georgia,serif;color:var(--acc)}
+.stat small{display:block;font-size:11px;color:var(--mute);margin-top:2px;font-weight:600}
+.stat small em{font-style:normal;color:var(--gold);font-weight:700}
+.bon-row{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:4px;font-size:11px;color:var(--mute)}
+.bon-row .st{width:22px;height:22px;font-size:13px}
+.bon-row input{width:3.2ch;text-align:center;font:700 13px Georgia,serif;background:var(--card);border:1px solid var(--line);border-radius:5px;color:var(--gold);padding:1px 0}
 .ed{display:none;width:100%;margin-top:4px;text-align:center;background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px}
 body.edit .ed{display:block}body.edit .stat b{opacity:.35}
 .row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line)}
@@ -221,7 +230,7 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
   <h2>Statut</h2>
   <div class="grid g3" id="vitals"></div>
 
-  <h2>Caractéristiques <span style="font-size:11px;letter-spacing:0;text-transform:none;color:var(--mute)">· clic = jet d100 (réussite si ≤ valeur)</span></h2>
+  <h2>Caractéristiques <span style="font-size:11px;letter-spacing:0;text-transform:none;color:var(--mute)">· base 30–70 + bonus ponctuel · clic = jet d100 (réussite si ≤ total)</span></h2>
   <div class="grid g7" id="stats"></div>
 
   <h2>Dés &amp; armes</h2>
@@ -239,10 +248,14 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
   <h2>Objets magiques &amp; reliques</h2>
   <div class="card">
     <div id="magic-items"></div>
-    <div class="add-box" style="flex-wrap:wrap">
+    <div class="add-box" style="flex-wrap:wrap;align-items:center">
       <input id="new-magic-name" placeholder="Nom de l'objet magique…" style="min-width:140px">
-      <input id="new-magic-slot" placeholder="Type (Anneau, Arme, Relique…)" style="max-width:160px">
-      <input id="new-magic-desc" placeholder="Effet / propriétés magiques…" style="min-width:200px;flex:2">
+      <input id="new-magic-slot" placeholder="Type (Anneau, Arme…)" style="max-width:140px">
+      <input id="new-magic-desc" placeholder="Effet / propriétés…" style="min-width:180px;flex:2">
+      <input id="new-magic-max" type="number" min="0" max="20" value="0" title="Charges max (0 = sans charges)" style="max-width:70px;text-align:center" placeholder="Charges">
+      <label style="font-size:12px;display:inline-flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" id="new-magic-rech" checked> ⟳ scénar.
+      </label>
       <button class="btn" id="add-magic">+ Ajouter</button>
     </div>
   </div>
@@ -342,7 +355,9 @@ if(!S.chasseLabels)S.chasseLabels={...CHASSE_LAB};
 if(!S.lore)S.lore={backstory:'',appearance:'',relations:''};
 if(!Array.isArray(S.sessions))S.sessions=[];
 if(!Array.isArray(S.magicItems))S.magicItems=[];
-const clean=()=>{for(const k in S.stats)if(!(k in DEF.stats))delete S.stats[k]};clean();
+if(!S.statBonus)S.statBonus={};
+if((S.xp||0)<350)S.xp=350;
+const clean=()=>{for(const k in S.stats){if(!(k in DEF.stats))delete S.stats[k];else S.stats[k]=Math.max(30,Math.min(70,S.stats[k]))}};clean();
 
 // ---- navigation onglets fiche
 function switchSheetTab(tab){
@@ -352,8 +367,8 @@ function switchSheetTab(tab){
 $$('.sheet-tab').forEach(b=>b.onclick=()=>switchSheetTab(b.dataset.sheetTab));
 
 // ---- construction
-$('#vitals').innerHTML=VIT.map(([n,k,m,c,hp,bar])=>\`<div class="card" style="--c:var(\${c})"><div class="lbl">\${n}</div><div class="big"><button class="st" data-k="\${k}" data-d="-1" aria-label="moins">−</button><input type="number" data-k="\${k}" aria-label="\${n}"><button class="st" data-k="\${k}" data-d="1" aria-label="plus">+</button></div>\${hp?\`<div class="sub">PV de base / max : <b data-v="pvMax"></b></div><input class="ed" type="number" data-k="pvMax" aria-label="PV max"><div class="meter"><i id="pvbar"></i></div>\`:m?\`<div class="sub">/ <b>\${m}</b></div>\`+(bar?\`<div class="meter"><i data-meter="\${k}" data-max="\${m}"></i></div>\`:''):'<div class="sub">&nbsp;</div>'}</div>\`).join('');
-$('#stats').innerHTML=Object.keys(DEF.stats).map(k=>\`<div><button class="stat" data-roll="\${k}"><span>\${LAB[k]||k}</span><b data-v="stats.\${k}"></b></button><input class="ed" type="number" data-k="stats.\${k}" aria-label="\${LAB[k]||k}"></div>\`).join('');
+$('#vitals').innerHTML=VIT.map(([n,k,m,c,hp,bar])=>\`<div class="card" style="--c:var(\${c})"><div class="lbl">\${n}</div><div class="big"><button class="st" data-k="\${k}" data-d="-1" aria-label="moins">−</button><input type="number" data-k="\${k}" aria-label="\${n}" \${k=='xp'?'min="350"':''}><button class="st" data-k="\${k}" data-d="1" aria-label="plus">+</button></div>\${hp?\`<div class="sub">PV de base / max : <b data-v="pvMax"></b></div><input class="ed" type="number" data-k="pvMax" aria-label="PV max"><div class="meter"><i id="pvbar"></i></div>\`:m?\`<div class="sub">/ <b>\${m}</b></div>\`+(bar?\`<div class="meter"><i data-meter="\${k}" data-max="\${m}"></i></div>\`:''):k=='xp'?'<div class="sub">Min. 350</div>':'<div class="sub">&nbsp;</div>'}</div>\`).join('');
+$('#stats').innerHTML=Object.keys(DEF.stats).map(k=>\`<div><button class="stat" data-roll="\${k}"><span>\${LAB[k]||k}</span><b data-stat-tot="\${k}"></b><small data-stat-sub="\${k}"></small></button><div class="bon-row" title="Bonus ponctuel (objet magique ou consommable)"><span>Boost</span><button class="st" data-k="statBonus.\${k}" data-d="-1">−</button><input type="number" data-k="statBonus.\${k}" aria-label="Bonus \${LAB[k]||k}"><button class="st" data-k="statBonus.\${k}" data-d="1">+</button></div><input class="ed" type="number" min="30" max="70" data-k="stats.\${k}" title="Valeur de base (30 à 70)" aria-label="Base \${LAB[k]||k}"></div>\`).join('');
 $('#weapons').innerHTML=WEAP.map(([n,e])=>\`<button class="btn" data-expr="\${e}" data-name="\${n}">\${n} <small>\${e}</small></button>\`).join('');
 $('#quick').innerHTML=[4,6,8,10,20,100].map(d=>\`<button class="btn" data-expr="1d\${d}" data-name="d\${d}">d\${d}</button>\`).join('');
 $('#res').innerHTML=RES.map(([k,n,d,m])=>\`<div class="res"><div><b>\${n}</b><small>\${d}</small></div><div class="dots" data-dots="res.\${k}" data-max="\${m}">\${Array.from({length:m},(_,i)=>\`<button data-i="\${i}" aria-label="charge \${i+1}"></button>\`).join('')}</div></div>\`).join('');
@@ -366,16 +381,24 @@ function renderLists(){
     if(!S.magicItems.length){
       $('#magic-items').innerHTML='<div style="color:var(--mute);font-size:13px;font-style:italic;padding:4px 0">Aucun objet magique enregistré (cliquez sur ✎ Éditer pour en ajouter).</div>';
     }else{
-      $('#magic-items').innerHTML=S.magicItems.map((m,idx)=>\`<div class="res">
-        <div style="display:flex;align-items:flex-start;gap:8px">
-          <button class="del-row" data-del-magic="\${idx}" title="Supprimer">×</button>
-          <div>
-            <b>\${esc(m.name||'Objet magique')}</b> \${m.slot?\`<span class="badge" style="margin-left:4px;font-size:11px">\${esc(m.slot)}</span>\`:''}
-            <small>\${esc(m.desc||'')}</small>
+      $('#magic-items').innerHTML=S.magicItems.map((m,idx)=>{
+        const maxC=+(m.maxCharges||0),curC=+(m.charges??maxC);
+        return \`<div class="res" style="flex-wrap:wrap">
+          <div style="display:flex;align-items:flex-start;gap:8px;flex:1;min-width:200px">
+            <button class="del-row" data-del-magic="\${idx}" title="Supprimer">×</button>
+            <div>
+              <b>\${esc(m.name||'Objet magique')}</b>
+              \${m.slot?\`<span class="badge" style="margin-left:4px;font-size:11px">\${esc(m.slot)}</span>\`:''}
+              \${maxC>0&&m.rechargeOnScenario!==false?\`<span class="badge" style="margin-left:4px;font-size:10px" title="Se recharge à chaque nouveau scénario">⟳ / scénar</span>\`:''}
+              <small>\${esc(m.desc||'')}</small>
+            </div>
           </div>
-        </div>
-        <button class="btn \${m.equipped!==false?'on':''}" style="padding:4px 10px;font-size:12px;white-space:nowrap" data-toggle-magic="\${idx}">\${m.equipped!==false?'✦ Équipé':'En sac'}</button>
-      </div>\`).join('');
+          <div style="display:flex;align-items:center;gap:10px">
+            \${maxC>0?\`<div class="dots" style="margin-top:0" data-magic-dots="\${idx}" data-max="\${maxC}">\${Array.from({length:maxC},(_,i)=>\`<button class="\${i<curC?'f':''}" data-i="\${i}" aria-label="charge \${i+1}"></button>\`).join('')}</div>\`:''}
+            <button class="btn \${m.equipped!==false?'on':''}" style="padding:4px 10px;font-size:12px;white-space:nowrap" data-toggle-magic="\${idx}">\${m.equipped!==false?'✦ Équipé':'En sac'}</button>
+          </div>
+        </div>\`;
+      }).join('');
     }
   }
 }
@@ -407,6 +430,14 @@ renderSessions();
 function sync(){
   $$('[data-k]').forEach(el=>{if(el.tagName=='BUTTON'||el===document.activeElement)return;const v=get(S,el.dataset.k);el.value=v??''});
   $$('[data-v]').forEach(el=>el.textContent=get(S,el.dataset.v));
+  $$('[data-stat-tot]').forEach(el=>{
+    const k=el.dataset.statTot,base=+(S.stats[k]||50),bon=+(S.statBonus?.[k]||0);
+    el.textContent=base+bon;
+  });
+  $$('[data-stat-sub]').forEach(el=>{
+    const k=el.dataset.statSub,base=+(S.stats[k]||50),bon=+(S.statBonus?.[k]||0);
+    el.innerHTML=bon?(\`Base \${base} <em>\${bon>0?'+'+bon:bon}</em>\`):\`Base \${base}\`;
+  });
   $$('[data-dots]').forEach(d=>{const v=get(S,d.dataset.dots);[...d.children].forEach((b,i)=>b.classList.toggle('f',i<v))});
   if($('#pvbar'))$('#pvbar').style.width=Math.max(0,Math.min(100,S.pv/(S.pvMax||1)*100))+'%';
   $$('[data-meter]').forEach(m=>{const max=+(m.dataset.max||100);m.style.width=Math.min(100,(S[m.dataset.meter]||0)/max*100)+'%'});
@@ -421,7 +452,15 @@ function save(){persist();status()}
 addEventListener('pagehide',persist);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='hidden')persist()});
 function change(){sync();save()}
-const clamp=(k,v)=>{v=Math.max(0,v);if(k=='pv')v=Math.min(v,S.pvMax);const vf=VIT.find(x=>x[1]==k);if(vf&&vf[2]&&vf[2]!=='pvMax')v=Math.min(v,vf[2]);return v};
+const clamp=(k,v)=>{
+  if(k.startsWith('statBonus.'))return Math.max(-50,Math.min(50,v));
+  if(k.startsWith('stats.'))return Math.max(30,Math.min(70,v));
+  if(k=='xp')return Math.max(350,v);
+  v=Math.max(0,v);
+  if(k=='pv')v=Math.min(v,S.pvMax);
+  const vf=VIT.find(x=>x[1]==k);if(vf&&vf[2]&&vf[2]!=='pvMax')v=Math.min(v,vf[2]);
+  return v;
+};
 
 // ---- dés
 function say(html){$('#last').innerHTML=html;S.log.unshift(html);S.log=S.log.slice(0,10);change()}
@@ -429,8 +468,11 @@ const rnd=n=>1+Math.floor(Math.random()*n);
 function rollExpr(e,name){const m=e.replace(/\\s/g,'').match(/^(\\d*)d(\\d+)([+-]\\d+)?$/i);if(!m)return say('<span class="ko">Format invalide</span> : essayez 1d10+2');
   const n=Math.min(+(m[1]||1),50),f=+m[2],b=+(m[3]||0);if(f<2)return;const r=Array.from({length:n},()=>rnd(f));
   say(\`<b>\${name||e}</b> \${e} → [\${r.join(', ')}]\${b?(b>0?'+':'')+b:''} = <b>\${r.reduce((a,c)=>a+c,0)+b}</b>\`)}
-function rollStat(k){const v=S.stats[k],r=rnd(100),ok=r<=v;
-  say(\`<b>\${LAB[k]||k}</b> (\${v}) → \${r} · <span class="\${ok?'ok':'ko'}">\${ok?'Réussite':'Échec'}</span> (écart \${Math.abs(v-r)})\`)}
+function rollStat(k){
+  const base=+(S.stats[k]||50),bon=+(S.statBonus?.[k]||0),v=base+bon,r=rnd(100),ok=r<=v;
+  const detail=bon?\`\${base}\${bon>0?'+'+bon:bon}=\${v}\`:\`\${v}\`;
+  say(\`<b>\${LAB[k]||k}</b> (\${detail}) → \${r} · <span class="\${ok?'ok':'ko'}">\${ok?'Réussite':'Échec'}</span> (écart \${Math.abs(v-r)})\`);
+}
 
 // ---- événements
 document.addEventListener('click',e=>{
@@ -471,6 +513,12 @@ document.addEventListener('click',e=>{
   if(b.dataset.d){const k=b.dataset.k;put(S,k,clamp(k,(+get(S,k)||0)+ +b.dataset.d));return change()}
   if(b.dataset.roll)return rollStat(b.dataset.roll);
   if(b.dataset.expr)return rollExpr(b.dataset.expr,b.dataset.name);
+  const mdots=b.closest('[data-magic-dots]');
+  if(mdots){
+    const idx=+mdots.dataset.magicDots,i=+b.dataset.i,m=S.magicItems[idx];
+    if(m){const cur=+(m.charges??m.maxCharges??0);m.charges=cur==i+1?i:i+1;renderLists();change()}
+    return;
+  }
   const dots=b.closest('[data-dots]');
   if(dots){const k=dots.dataset.dots,i=+b.dataset.i;put(S,k,get(S,k)==i+1?i:i+1);return change()}
 });
@@ -481,7 +529,12 @@ $('#go').onclick=()=>rollExpr($('#expr').value,'Jet libre');
 $('#expr').onkeydown=e=>{if(e.key=='Enter')$('#go').click()};
 $('#edit').onclick=e=>{document.body.classList.toggle('edit');e.target.classList.toggle('on')};
 $('#theme').onclick=()=>{const r=document.documentElement,d=getComputedStyle(r).getPropertyValue('--bg').trim()==${JSON.stringify(c.darkBg)};r.dataset.theme=d?'light':'dark'};
-$('#scenar').onclick=()=>{RES.forEach(([k,n,d,m,rech])=>{if(rech)S.res[k]=m});say('<b>Nouveau scénario</b> : pouvoirs rechargés.')};
+function rechargeScenario(){
+  RES.forEach(([k,n,d,m,rech])=>{if(rech)S.res[k]=m});
+  S.magicItems.forEach(m=>{if((m.maxCharges||0)>0&&m.rechargeOnScenario!==false)m.charges=m.maxCharges});
+  renderLists();
+}
+$('#scenar').onclick=()=>{rechargeScenario();say('<b>Nouveau scénario</b> : pouvoirs et objets magiques rechargés.')};
 $('#rest').onclick=()=>{S.pv=S.pvMax;say('<b>Repos</b> : PV au maximum.')};
 
 // ---- gestion journal des sessions
@@ -532,10 +585,11 @@ if($('#add-chasse'))$('#add-chasse').onclick=()=>{
   S.chasse[k]=1;S.chasseLabels=S.chasseLabels||{};S.chasseLabels[k]=name;inp.value='';renderLists();change();
 };
 if($('#add-magic'))$('#add-magic').onclick=()=>{
-  const nInp=$('#new-magic-name'),sInp=$('#new-magic-slot'),dInp=$('#new-magic-desc');
+  const nInp=$('#new-magic-name'),sInp=$('#new-magic-slot'),dInp=$('#new-magic-desc'),mInp=$('#new-magic-max'),rInp=$('#new-magic-rech');
   const name=nInp.value.trim();if(!name)return;
-  S.magicItems.push({name,slot:sInp.value.trim(),desc:dInp.value.trim(),equipped:true});
-  nInp.value='';sInp.value='';dInp.value='';renderLists();change();
+  const maxC=Math.max(0,+(mInp?.value||0));
+  S.magicItems.push({name,slot:sInp.value.trim(),desc:dInp.value.trim(),charges:maxC,maxCharges:maxC,rechargeOnScenario:rInp?rInp.checked:true,equipped:true});
+  nInp.value='';sInp.value='';dInp.value='';if(mInp)mInp.value='0';renderLists();change();
 };
 
 $('#export-save').onclick=()=>{
@@ -552,8 +606,8 @@ $('#import-save-file').onchange=e=>{
 };
 
 let armed=false;const RL='Réinitialiser le scénario';
-$('#reset').onclick=e=>{if(!armed){armed=true;e.target.textContent='Confirmer ? (PV, pouvoirs, conditions, notes)';setTimeout(()=>{armed=false;e.target.textContent=RL},5000);return}
-  S.pv=S.pvMax;RES.forEach(([k,n,d,m,rech])=>{if(rech)S.res[k]=m});S.cond='';S.notes='';S.log=[];
+$('#reset').onclick=e=>{if(!armed){armed=true;e.target.textContent='Confirmer ? (PV, pouvoirs/objets, conditions, notes)';setTimeout(()=>{armed=false;e.target.textContent=RL},5000);return}
+  S.pv=S.pvMax;rechargeScenario();S.cond='';S.notes='';S.log=[];
   $('#last').textContent='Scénario réinitialisé : stats, caractéristiques, historique et consommables conservés.';
   armed=false;e.target.textContent=RL;change()};
 sync();

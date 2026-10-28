@@ -232,13 +232,13 @@ const CHARACTER_TEMPLATES = {
       { key: "chance", label: "Chance", value: 50, max: 0, color: "--acc", isHp: false, showBar: false }
     ],
     stats: [
-      { key: "Force", label: "Force", value: 52 },
-      { key: "Consti", label: "Consti.", value: 51 },
-      { key: "Intel", label: "Intel.", value: 55 },
-      { key: "Volonté", label: "Volonté", value: 45 },
-      { key: "Social", label: "Social", value: 45 },
-      { key: "Dextérité", label: "Dextérité", value: 73 },
-      { key: "Perception", label: "Perception", value: 70 }
+      { key: "Force", label: "Force", value: 52, bonus: 0 },
+      { key: "Consti", label: "Consti.", value: 51, bonus: 0 },
+      { key: "Intel", label: "Intel.", value: 55, bonus: 0 },
+      { key: "Volonté", label: "Volonté", value: 45, bonus: 0 },
+      { key: "Social", label: "Social", value: 45, bonus: 0 },
+      { key: "Dextérité", label: "Dextérité", value: 70, bonus: 3 },
+      { key: "Perception", label: "Perception", value: 70, bonus: 0 }
     ],
     weapons: [
       { name: "Arc d'Aric", expr: "1d10+1" },
@@ -277,9 +277,9 @@ const CHARACTER_TEMPLATES = {
       { key: "Bouquetin", label: "Bouquetin", value: 1 }
     ],
     magicItems: [
-      { name: "Arc d'Aric", slot: "Arme", desc: "Arc enchanté (+1 aux dégâts, 1d10+1)", equipped: true },
-      { name: "Anneau de foudre", slot: "Anneau", desc: "3 charges par scénario · À demander à Elaïth", equipped: true },
-      { name: "Anneau de Gang Bole", slot: "Anneau", desc: "3 charges par scénario · Flèche +2 dégâts, inesquivable", equipped: true }
+      { name: "Arc d'Aric", slot: "Arme", desc: "Arc enchanté (+1 aux dégâts, +3 Dextérité)", charges: 0, maxCharges: 0, rechargeOnScenario: false, equipped: true },
+      { name: "Anneau de foudre", slot: "Anneau", desc: "À demander à Elaïth à chaque scénar", charges: 3, maxCharges: 3, rechargeOnScenario: true, equipped: true },
+      { name: "Anneau de Gang Bole", slot: "Anneau", desc: "Flèche +2 dégâts, inesquivable", charges: 3, maxCharges: 3, rechargeOnScenario: true, equipped: true }
     ],
     cond: "",
     notes: "",
@@ -293,7 +293,7 @@ const CHARACTER_TEMPLATES = {
         id: "scen-1",
         title: "Les Pistes de la Forêt Sombre",
         date: "Scénario 1",
-        rewards: "+120 XP · +350 PO",
+        rewards: "+35 XP · +350 PO",
         summary: "Traque d'un ours géant et d'une bande de gobelins embusqués dans les ravins."
       }
     ]
@@ -314,18 +314,18 @@ const CHARACTER_TEMPLATES = {
       { key: "pv", label: "Points de vie", value: 15, max: 15, color: "--red", isHp: true, showBar: true },
       { key: "corr", label: "Corruption", value: 0, max: 100, color: "--pur", isHp: false, showBar: true },
       { key: "folie", label: "Folie", value: 0, max: 100, color: "--pur", isHp: false, showBar: true },
-      { key: "xp", label: "Expérience", value: 0, max: 0, color: "--acc", isHp: false, showBar: false },
+      { key: "xp", label: "Expérience", value: 350, max: 0, color: "--acc", isHp: false, showBar: false },
       { key: "or", label: "Or (po)", value: 50, max: 0, color: "--gold", isHp: false, showBar: false },
       { key: "chance", label: "Chance", value: 50, max: 0, color: "--acc", isHp: false, showBar: false }
     ],
     stats: [
-      { key: "Force", label: "Force", value: 50 },
-      { key: "Consti", label: "Consti.", value: 50 },
-      { key: "Intel", label: "Intel.", value: 50 },
-      { key: "Volonté", label: "Volonté", value: 50 },
-      { key: "Social", label: "Social", value: 50 },
-      { key: "Dextérité", label: "Dextérité", value: 50 },
-      { key: "Perception", label: "Perception", value: 50 }
+      { key: "Force", label: "Force", value: 50, bonus: 0 },
+      { key: "Consti", label: "Consti.", value: 50, bonus: 0 },
+      { key: "Intel", label: "Intel.", value: 50, bonus: 0 },
+      { key: "Volonté", label: "Volonté", value: 50, bonus: 0 },
+      { key: "Social", label: "Social", value: 50, bonus: 0 },
+      { key: "Dextérité", label: "Dextérité", value: 50, bonus: 0 },
+      { key: "Perception", label: "Perception", value: 50, bonus: 0 }
     ],
     weapons: [
       { name: "Arme principale", expr: "1d8" },
@@ -376,18 +376,18 @@ const CHARACTER_TEMPLATES = {
       { key: "pv", label: "Points de vie", value: 26, max: 26, color: "--red", isHp: true, showBar: true },
       { key: "corr", label: "Corruption", value: 2, max: 100, color: "--pur", isHp: false, showBar: true },
       { key: "folie", label: "Folie", value: 5, max: 100, color: "--pur", isHp: false, showBar: true },
-      { key: "xp", label: "Expérience", value: 220, max: 0, color: "--acc", isHp: false, showBar: false },
+      { key: "xp", label: "Expérience", value: 380, max: 0, color: "--acc", isHp: false, showBar: false },
       { key: "or", label: "Or (po)", value: 640, max: 0, color: "--gold", isHp: false, showBar: false },
       { key: "chance", label: "Chance", value: 45, max: 0, color: "--acc", isHp: false, showBar: false }
     ],
     stats: [
-      { key: "Force", label: "Force", value: 68 },
-      { key: "Consti", label: "Consti.", value: 65 },
-      { key: "Intel", label: "Intel.", value: 40 },
-      { key: "Volonté", label: "Volonté", value: 55 },
-      { key: "Social", label: "Social", value: 42 },
-      { key: "Dextérité", label: "Dextérité", value: 50 },
-      { key: "Perception", label: "Perception", value: 48 }
+      { key: "Force", label: "Force", value: 68, bonus: 0 },
+      { key: "Consti", label: "Consti.", value: 65, bonus: 0 },
+      { key: "Intel", label: "Intel.", value: 40, bonus: 0 },
+      { key: "Volonté", label: "Volonté", value: 55, bonus: 5 },
+      { key: "Social", label: "Social", value: 42, bonus: 0 },
+      { key: "Dextérité", label: "Dextérité", value: 50, bonus: 0 },
+      { key: "Perception", label: "Perception", value: 48, bonus: 0 }
     ],
     weapons: [
       { name: "Espadon runique", expr: "2d6+3" },
@@ -419,8 +419,8 @@ const CHARACTER_TEMPLATES = {
       { key: "Trolls", label: "Troll des collines", value: 1 }
     ],
     magicItems: [
-      { name: "Espadon runique de Thorek", slot: "Arme", desc: "Lame gravée de runes naines (+3 aux dégâts)", equipped: true },
-      { name: "Talisman du Bastion", slot: "Amulette", desc: "+5 en Volonté contre la peur et la terreur", equipped: true }
+      { name: "Espadon runique de Thorek", slot: "Arme", desc: "Lame gravée de runes naines (+3 aux dégâts)", charges: 0, maxCharges: 0, rechargeOnScenario: false, equipped: true },
+      { name: "Talisman du Bastion", slot: "Amulette", desc: "+5 en Volonté contre la peur, 2 absorptions/scénario", charges: 2, maxCharges: 2, rechargeOnScenario: true, equipped: true }
     ],
     cond: "",
     notes: "",
@@ -447,18 +447,18 @@ const CHARACTER_TEMPLATES = {
       { key: "pv", label: "Points de vie", value: 14, max: 14, color: "--red", isHp: true, showBar: true },
       { key: "corr", label: "Corruption", value: 12, max: 100, color: "--pur", isHp: false, showBar: true },
       { key: "folie", label: "Folie", value: 18, max: 100, color: "--pur", isHp: false, showBar: true },
-      { key: "xp", label: "Expérience", value: 310, max: 0, color: "--acc", isHp: false, showBar: false },
+      { key: "xp", label: "Expérience", value: 410, max: 0, color: "--acc", isHp: false, showBar: false },
       { key: "or", label: "Or (po)", value: 1120, max: 0, color: "--gold", isHp: false, showBar: false },
       { key: "chance", label: "Chance", value: 55, max: 0, color: "--acc", isHp: false, showBar: false }
     ],
     stats: [
-      { key: "Force", label: "Force", value: 35 },
-      { key: "Consti", label: "Consti.", value: 42 },
-      { key: "Intel", label: "Intel.", value: 78 },
-      { key: "Volonté", label: "Volonté", value: 72 },
-      { key: "Social", label: "Social", value: 58 },
-      { key: "Dextérité", label: "Dextérité", value: 60 },
-      { key: "Perception", label: "Perception", value: 65 }
+      { key: "Force", label: "Force", value: 35, bonus: 0 },
+      { key: "Consti", label: "Consti.", value: 42, bonus: 0 },
+      { key: "Intel", label: "Intel.", value: 70, bonus: 5 },
+      { key: "Volonté", label: "Volonté", value: 68, bonus: 0 },
+      { key: "Social", label: "Social", value: 58, bonus: 0 },
+      { key: "Dextérité", label: "Dextérité", value: 60, bonus: 0 },
+      { key: "Perception", label: "Perception", value: 65, bonus: 0 }
     ],
     weapons: [
       { name: "Trait de feu", expr: "2d8+2" },
@@ -490,9 +490,9 @@ const CHARACTER_TEMPLATES = {
       { key: "Artefacts", label: "Reliques identifiées", value: 4 }
     ],
     magicItems: [
-      { name: "Bâton de Pierre de Lune", slot: "Bâton", desc: "Catalyseur arcanique (+5 aux tests d'Intelligence magique)", equipped: true },
-      { name: "Anneau du Voile", slot: "Anneau", desc: "Projette un bouclier cristallin (2 charges/scénar)", equipped: true },
-      { name: "Boussole d'Éther", slot: "Relique", desc: "Pointe vers la source de magie la plus proche", equipped: false }
+      { name: "Bâton de Pierre de Lune", slot: "Bâton", desc: "Catalyseur arcanique (+5 aux tests d'Intelligence)", charges: 0, maxCharges: 0, rechargeOnScenario: false, equipped: true },
+      { name: "Anneau du Voile", slot: "Anneau", desc: "Projette un bouclier cristallin (2 charges/scénar)", charges: 2, maxCharges: 2, rechargeOnScenario: true, equipped: true },
+      { name: "Boussole d'Éther", slot: "Relique", desc: "Pointe vers la source de magie la plus proche (1/scénar)", charges: 1, maxCharges: 1, rechargeOnScenario: true, equipped: false }
     ],
     cond: "",
     notes: "",

@@ -41,6 +41,34 @@ function loadRoster() {
     saveRoster();
   }
 
+  // Normaliser les contraintes (XP >= 350, caractéristiques 30-70 + bonus, charges d'objets magiques)
+  roster.forEach(ch => {
+    (ch.vitals || []).forEach(v => {
+      if (v.key === "xp" && (Number(v.value) || 0) < 350) v.value = 350;
+    });
+    (ch.stats || []).forEach(st => {
+      if (st.bonus === undefined) {
+        if (st.value > 70) {
+          st.bonus = st.value - 70;
+          st.value = 70;
+        } else if (st.value < 30) {
+          st.bonus = st.value - 30;
+          st.value = 30;
+        } else {
+          st.bonus = 0;
+        }
+      }
+      st.value = Math.max(30, Math.min(70, Number(st.value) || 50));
+    });
+    if (Array.isArray(ch.magicItems)) {
+      ch.magicItems.forEach(m => {
+        if (m.maxCharges === undefined) m.maxCharges = 0;
+        if (m.charges === undefined) m.charges = m.maxCharges;
+        if (m.rechargeOnScenario === undefined) m.rechargeOnScenario = m.maxCharges > 0;
+      });
+    }
+  });
+
   const savedActiveId = localStorage.getItem(ACTIVE_ID_KEY);
   currentChar = roster.find(c => c.id === savedActiveId) || roster[0];
 }
@@ -214,8 +242,8 @@ function renderVitalsList() {
   container.innerHTML = currentChar.vitals.map((v, idx) => `
     <div class="list-row" data-idx="${idx}">
       <input type="text" class="grow" data-field="label" value="${escapeHtml(v.label)}" placeholder="Nom du compteur (ex: Points de vie)">
-      <label style="font-size:11px;color:var(--mute)">Val.
-        <input type="number" class="num-input" data-field="value" value="${v.value}">
+      <label style="font-size:11px;color:var(--mute)">${v.key === "xp" ? "Val. (min 350)" : "Val."}
+        <input type="number" class="num-input" data-field="value" value="${v.key === "xp" ? Math.max(350, v.value) : v.value}" ${v.key === "xp" ? 'min="350"' : ""}>
       </label>
       <label style="font-size:11px;color:var(--mute)">Max (0=aucun)
         <input type="number" class="num-input" data-field="max" value="${v.max || 0}">
@@ -232,28 +260,48 @@ function renderVitalsList() {
     </div>
   `).join("");
 
-  bindListEvents(container, currentChar.vitals, renderVitalsList);
+  bindListEvents(container, currentChar.vitals, renderVitalsList, (item, field, val) => {
+    if (field === "value" && item.key === "xp" && val < 350) {
+      return 350;
+    }
+  });
 }
 
 function renderStatsList() {
   const container = $("#stats-list");
-  container.innerHTML = currentChar.stats.map((st, idx) => `
+  container.innerHTML = currentChar.stats.map((st, idx) => {
+    const base = Math.max(30, Math.min(70, Number(st.value) || 50));
+    const bonus = Number(st.bonus) || 0;
+    const tot = base + bonus;
+    return `
     <div class="list-row" data-idx="${idx}">
       <input type="text" class="grow" data-field="label" value="${escapeHtml(st.label)}" placeholder="Libellé affiché (ex: Consti.)">
-      <label style="font-size:11px;color:var(--mute)">Score (/100)
-        <input type="number" class="num-input" data-field="value" value="${st.value}" min="1" max="100">
+      <label style="font-size:11px;color:var(--mute)">Base (30–70)
+        <input type="number" class="num-input" data-field="value" value="${base}" min="30" max="70">
       </label>
+      <label style="font-size:11px;color:var(--mute)" title="Bonus ponctuel lié à un objet ou consommable">Bonus (+/-)
+        <input type="number" class="num-input" data-field="bonus" value="${bonus}" min="-50" max="50" style="color:var(--gold)">
+      </label>
+      <span class="stat-tot-badge" style="min-width:68px;text-align:center;font-size:12px;color:var(--mute)">Total : <b style="color:var(--ink);font-size:14px">${tot}</b></span>
       <button class="icon-btn" data-action="up" title="Monter" ${idx === 0 ? "disabled" : ""}>↑</button>
       <button class="icon-btn" data-action="down" title="Descendre" ${idx === currentChar.stats.length - 1 ? "disabled" : ""}>↓</button>
       <button class="icon-btn del" data-action="del" title="Supprimer">×</button>
     </div>
-  `).join("");
+  `}).join("");
 
-  bindListEvents(container, currentChar.stats, renderStatsList, (item, field, val) => {
+  bindListEvents(container, currentChar.stats, renderStatsList, (item, field, val, row) => {
     if (field === "label") {
       item.label = val;
       item.key = val.replace(/\./g, "").trim() || ("Stat" + Date.now());
     }
+    if (field === "value") {
+      val = Math.max(30, Math.min(70, val));
+    }
+    const nextBase = field === "value" ? val : (Number(item.value) || 50);
+    const nextBon = field === "bonus" ? val : (Number(item.bonus) || 0);
+    const badge = row?.querySelector(".stat-tot-badge b");
+    if (badge) badge.textContent = nextBase + nextBon;
+    return val;
   });
 }
 
@@ -343,9 +391,18 @@ function renderMagicItemsList() {
   }
   container.innerHTML = currentChar.magicItems.map((m, idx) => `
     <div class="list-row" data-idx="${idx}">
-      <input type="text" style="width:170px;font-weight:700" data-field="name" value="${escapeHtml(m.name || "")}" placeholder="Nom (ex: Arc d'Aric)">
-      <input type="text" style="width:120px" data-field="slot" value="${escapeHtml(m.slot || "")}" placeholder="Type (Anneau, Arme…)">
+      <input type="text" style="width:155px;font-weight:700" data-field="name" value="${escapeHtml(m.name || "")}" placeholder="Nom (ex: Arc d'Aric)">
+      <input type="text" style="width:105px" data-field="slot" value="${escapeHtml(m.slot || "")}" placeholder="Type (Anneau…)">
       <input type="text" class="grow" data-field="desc" value="${escapeHtml(m.desc || "")}" placeholder="Effets / propriétés magiques…">
+      <label style="font-size:11px;color:var(--mute)" title="Charges actuelles">Act.
+        <input type="number" style="width:50px;text-align:center" data-field="charges" value="${m.charges ?? m.maxCharges ?? 0}" min="0" max="20">
+      </label>
+      <label style="font-size:11px;color:var(--mute)" title="Charges max par scénario (0 = objet passif sans charges)">Max
+        <input type="number" style="width:50px;text-align:center" data-field="maxCharges" value="${m.maxCharges || 0}" min="0" max="20">
+      </label>
+      <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer" title="Se recharge au clic sur Nouveau scénario">
+        <input type="checkbox" data-field="rechargeOnScenario" ${m.rechargeOnScenario !== false ? "checked" : ""}> ⟳ scénar.
+      </label>
       <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer" title="Objet équipé">
         <input type="checkbox" data-field="equipped" ${m.equipped !== false ? "checked" : ""}> Équipé
       </label>
@@ -355,7 +412,12 @@ function renderMagicItemsList() {
     </div>
   `).join("");
 
-  bindListEvents(container, currentChar.magicItems, renderMagicItemsList, null, "play");
+  bindListEvents(container, currentChar.magicItems, renderMagicItemsList, (item, field, val) => {
+    if (field === "maxCharges" && (item.charges === undefined || item.charges > val || item.maxCharges === 0)) {
+      item.charges = val;
+    }
+    return val;
+  }, "play");
 }
 
 function renderSessionsList() {
@@ -390,7 +452,8 @@ function bindListEvents(container, arr, rerenderFn, customSetter, previewTabHint
         if (!field) return;
         let val = e.target.type === "checkbox" ? e.target.checked : e.target.type === "number" ? Number(e.target.value) : e.target.value;
         if (customSetter) {
-          customSetter(arr[idx], field, val);
+          const maybeVal = customSetter(arr[idx], field, val, row);
+          if (maybeVal !== undefined) val = maybeVal;
         }
         arr[idx][field] = val;
         onCharUpdated(false, previewTabHint);
@@ -653,7 +716,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   $("#add-stat-btn").addEventListener("click", () => {
-    currentChar.stats.push({ key: "Nouvelle", label: "Nouvelle", value: 50 });
+    currentChar.stats.push({ key: "Nouvelle", label: "Nouvelle", value: 50, bonus: 0 });
     renderStatsList();
     onCharUpdated();
   });
@@ -730,6 +793,9 @@ document.addEventListener("DOMContentLoaded", () => {
       name: "Nouvel objet magique",
       slot: "Relique",
       desc: "Effets et propriétés…",
+      charges: 3,
+      maxCharges: 3,
+      rechargeOnScenario: true,
       equipped: true
     });
     renderMagicItemsList();
