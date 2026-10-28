@@ -104,9 +104,15 @@ function generateStandaloneHTML(char, isPreview = false, initialTab = "play") {
 
   const gearObj = {};
   (char.gear || []).forEach(g => {
-    defObj.gear[g.key] = Number(g.value) || 0;
+    const rawExpr = (g.expr || "").trim();
+    const cat = ["Équipement", "Arme", "Armure"].includes(g.category)
+      ? g.category
+      : rawExpr ? "Arme" : /armure|plate|cotte|cuirasse|casque/i.test(g.label || "") ? "Armure" : "Équipement";
+    const expr = rawExpr || (cat === "Armure" ? "1d4" : "");
+    defObj.gear[g.key] = 1;
     defObj.gearMeta[g.key] = {
-      expr: (g.expr || "").trim(),
+      category: cat,
+      expr,
       equipped: g.equipped !== false
     };
     gearObj[g.key] = g.label;
@@ -190,9 +196,14 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .stat b{font:700 26px Georgia,serif;color:var(--acc)}
 .stat small{display:block;font-size:11px;color:var(--mute);margin-top:2px;font-weight:600}
 .stat small em{font-style:normal;color:var(--gold);font-weight:700}
-.bon-row{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:4px;font-size:11px;color:var(--mute)}
+.bon-row{display:none;align-items:center;justify-content:center;gap:4px;margin-top:4px;font-size:11px;color:var(--mute)}
+body.edit .bon-row{display:flex}
 .bon-row .st{width:22px;height:22px;font-size:13px}
 .bon-row input{width:3.2ch;text-align:center;font:700 13px Georgia,serif;background:var(--card);border:1px solid var(--line);border-radius:5px;color:var(--gold);padding:1px 0}
+.edit-only-vital .st{display:none}
+.edit-only-vital input{pointer-events:none}
+body.edit .edit-only-vital .st{display:inline-block}
+body.edit .edit-only-vital input{pointer-events:auto;background:var(--soft);border:1px solid var(--line);border-radius:6px}
 .ed{display:none;width:100%;margin-top:4px;text-align:center;background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px}
 body.edit .ed{display:block}body.edit .stat b{opacity:.35}
 .row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line)}
@@ -236,13 +247,16 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
 .empty-msg{text-align:center;padding:24px;color:var(--mute);font-style:italic;background:var(--card);border:1px dashed var(--line);border-radius:10px;margin-top:10px}
 .foot{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
 .mini{font-size:12px;color:var(--mute);margin-top:6px}
+.brand-foot,.print-tab-foot{text-align:center;font-family:Georgia,serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);border-top:1px solid var(--line);padding-top:10px;margin-top:18px}
+.print-tab-foot{display:none}
 .print-tab-head{display:none;align-items:center;justify-content:space-between;background:var(--band);color:var(--on);border:1.5px solid var(--gold);border-radius:8px;padding:6px 12px;margin-bottom:10px;font-family:Georgia,serif;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 @media print{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  .tools,.foot,.exp,#quick,#saved,.sheet-tabs,.bar,.log-head,#log,.st,#archive-notes-btn,#toggle-sess-form,.sess-form,[data-edit-sess],[data-del-sess],.add-box,.del-row,.ed,.hero-ed{display:none!important}
+  .tools,.foot,.exp,#quick,#saved,.brand-foot,.sheet-tabs,.bar,.log-head,#log,.st,#archive-notes-btn,#toggle-sess-form,.sess-form,[data-edit-sess],[data-del-sess],.add-box,.del-row,.ed,.hero-ed{display:none!important}
   .sheet-pane{display:block!important;margin-bottom:0}
   .sheet-pane + .sheet-pane{page-break-before:always;break-before:page;padding-top:10px}
   .print-tab-head{display:flex!important}
+  .print-tab-foot{display:block!important}
   .card,.sess-card{break-inside:avoid;page-break-inside:avoid}
   textarea{overflow:hidden!important;resize:none!important}
   body{background:var(--bg);color:var(--ink)}
@@ -282,7 +296,7 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
   <h2>Statut</h2>
   <div class="grid g3" id="vitals"></div>
 
-  <h2>Caractéristiques <span style="font-size:11px;letter-spacing:0;text-transform:none;color:var(--mute)">· base 30–70 (total <b id="stat-sum">0</b> / <b id="stat-xp">350</b> XP) · clic = jet d100 (réussite si ≤ total)</span></h2>
+  <h2>Caractéristiques <span style="font-size:11px;letter-spacing:0;text-transform:none;color:var(--mute)">(total <b id="stat-sum">0</b> / <b id="stat-xp">350</b> XP) · clic = jet d100 (réussite si ≤ total)</span></h2>
   <div class="grid g7" id="stats"></div>
 
   <h2>Dés &amp; armes</h2>
@@ -298,15 +312,18 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
   </div>
 
   <h2>Compétences <span style="font-size:11px;letter-spacing:0;text-transform:none;color:var(--mute)">· clic = jet d100 sous Caractéristique + Bonus</span></h2>
-  <div class="card">
-    <div id="skills"></div>
-    <div class="add-box" style="flex-wrap:wrap;align-items:center">
-      <input id="new-skill-name" placeholder="Nom de la compétence (ex : Pistage)…" style="min-width:140px">
-      <select id="new-skill-stat" style="max-width:150px"></select>
-      <input id="new-skill-bonus" type="number" min="-50" max="50" value="10" title="Bonus de compétence (+/-)" style="max-width:75px;text-align:center" placeholder="Bonus">
-      <input id="new-skill-desc" placeholder="Effet / description…" style="min-width:180px;flex:2">
-      <button class="btn" id="add-skill">+ Ajouter</button>
-    </div>
+  <div class="grid g3" id="skills"></div>
+  <div class="card add-box" style="flex-wrap:wrap;align-items:center;margin-top:8px">
+    <input id="new-skill-name" placeholder="Nom de la compétence (ex : Pistage)…" style="min-width:140px">
+    <select id="new-skill-cat" style="max-width:135px" title="Catégorie de compétence">
+      <option value="Social">🗣 Social</option>
+      <option value="Corporel">💪 Corporel</option>
+      <option value="Utilitaire" selected>🛠 Utilitaire</option>
+    </select>
+    <select id="new-skill-stat" style="max-width:145px" title="Caractéristique liée"></select>
+    <input id="new-skill-bonus" type="number" min="-50" max="50" value="10" title="Bonus de compétence (+/-)" style="max-width:75px;text-align:center" placeholder="Bonus">
+    <input id="new-skill-desc" placeholder="Effet / description…" style="min-width:180px;flex:2">
+    <button class="btn" id="add-skill">+ Ajouter</button>
   </div>
 
   <h2>Charges &amp; pouvoirs</h2>
@@ -339,7 +356,16 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
     <div class="card">
       <div class="lbl">${escapeHtml(char.gearCardTitle || "Inventaire non consommable")}</div>
       <div id="gear"></div>
-      <div class="add-box" style="flex-wrap:wrap"><input id="new-gear" placeholder="Nouvel objet ou arme…" style="min-width:130px"><input id="new-gear-expr" placeholder="Jet (ex: 1d8)" title="Si c'est une arme, indiquez ses dés (ex: 1d8)" style="max-width:110px;text-align:center"><button class="btn" id="add-gear">+ Ajouter</button></div>
+      <div class="add-box" style="flex-wrap:wrap;align-items:center">
+        <input id="new-gear" placeholder="Nouvel objet non consommable…" style="min-width:130px">
+        <select id="new-gear-cat" style="max-width:135px" title="Catégorie de l'objet">
+          <option value="Équipement" selected>🎒 Équipement</option>
+          <option value="Arme">⚔ Arme</option>
+          <option value="Armure">🛡 Armure</option>
+        </select>
+        <input id="new-gear-expr" placeholder="Jet (ex: 1d8)" title="Si c'est une arme ou une armure, indiquez ses dés (ex: 1d8, 1d4)" style="max-width:105px;text-align:center">
+        <button class="btn" id="add-gear">+ Ajouter</button>
+      </div>
     </div>
   </div>
 
@@ -349,6 +375,7 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
   <div style="margin-top:6px;display:flex;justify-content:flex-end">
     <button class="btn" id="archive-notes-btn">📖 Archiver ces notes dans le journal des sessions</button>
   </div>
+  <div class="print-tab-foot">Compagnie Française de Systèmes et Algorithmes</div>
 </section>
 
 <!-- ONGLET 2 : HISTORIQUE & LORE -->
@@ -374,6 +401,7 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
     <div id="chasse"></div>
     <div class="add-box"><input id="new-chasse" placeholder="Nouvelle entrée…"><button class="btn" id="add-chasse">+ Ajouter</button></div>
   </div>` : ""}
+  <div class="print-tab-foot">Compagnie Française de Systèmes et Algorithmes</div>
 </section>
 
 <!-- ONGLET 3 : JOURNAL DES SESSIONS / SCÉNARIOS -->
@@ -400,6 +428,7 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
   </div>
 
   <div id="sessions-container" class="sess-list"></div>
+  <div class="print-tab-foot">Compagnie Française de Systèmes et Algorithmes</div>
 </section>
 
 <div class="foot">
@@ -410,6 +439,7 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
   <input type="file" id="import-save-file" accept=".json" style="display:none">
 </div>
 <div class="mini" id="saved">Sauvegarde automatique dans ce navigateur.</div>
+<footer class="brand-foot">Compagnie Française de Systèmes et Algorithmes</footer>
 </main>
 <script id="rpg-char-config" type="application/json">${embeddedConfig}</script>
 <script>
@@ -458,7 +488,8 @@ function switchSheetTab(tab){
 $$('.sheet-tab').forEach(b=>b.onclick=()=>switchSheetTab(b.dataset.sheetTab));
 
 // ---- construction
-$('#vitals').innerHTML=VIT.map(([n,k,m,c,hp,bar])=>\`<div class="card" style="--c:var(\${c})"><div class="lbl">\${n}</div><div class="big"><button class="st" data-k="\${k}" data-d="-1" aria-label="moins">−</button><input type="number" data-k="\${k}" aria-label="\${n}" \${k=='xp'?'min="350"':''}><button class="st" data-k="\${k}" data-d="1" aria-label="plus">+</button></div>\${hp?\`<div class="sub">PV de base / max : <b data-v="pvMax"></b></div><input class="ed" type="number" data-k="pvMax" aria-label="PV max"><div class="meter"><i id="pvbar"></i></div>\`:m?\`<div class="sub">/ <b>\${m}</b></div>\`+(bar?\`<div class="meter"><i data-meter="\${k}" data-max="\${m}"></i></div>\`:''):k=='xp'?'<div class="sub">Min. 350</div>':'<div class="sub">&nbsp;</div>'}</div>\`).join('');
+const EDIT_ONLY_VITALS=new Set(['corr','folie','xp','chance']);
+$('#vitals').innerHTML=VIT.map(([n,k,m,c,hp,bar])=>\`<div class="card" style="--c:var(\${c})"><div class="lbl">\${n}</div><div class="big \${EDIT_ONLY_VITALS.has(k)?'edit-only-vital':''}"><button class="st" data-k="\${k}" data-d="-1" aria-label="moins">−</button><input type="number" data-k="\${k}" aria-label="\${n}" \${k=='xp'?'min="350"':''}><button class="st" data-k="\${k}" data-d="1" aria-label="plus">+</button></div>\${hp?\`<div class="sub">PV de base / max : <b data-v="pvMax"></b></div><input class="ed" type="number" data-k="pvMax" aria-label="PV max"><div class="meter"><i id="pvbar"></i></div>\`:m?\`<div class="sub">/ <b>\${m}</b></div>\`+(bar?\`<div class="meter"><i data-meter="\${k}" data-max="\${m}"></i></div>\`:''):k=='xp'?'<div class="sub">Min. 350</div>':'<div class="sub">&nbsp;</div>'}</div>\`).join('');
 $('#stats').innerHTML=Object.keys(DEF.stats).map(k=>\`<div><button class="stat" data-roll="\${k}"><span>\${LAB[k]||k}</span><b data-stat-tot="\${k}"></b><small data-stat-sub="\${k}"></small></button><div class="bon-row" title="Bonus ponctuel (objet magique ou consommable)"><span>Boost</span><button class="st" data-k="statBonus.\${k}" data-d="-1">−</button><input type="number" data-k="statBonus.\${k}" aria-label="Bonus \${LAB[k]||k}"><button class="st" data-k="statBonus.\${k}" data-d="1">+</button></div><input class="ed" type="number" min="30" max="70" data-k="stats.\${k}" title="Valeur de base (30 à 70)" aria-label="Base \${LAB[k]||k}"></div>\`).join('');
 $('#quick').innerHTML=[4,6,8,10,20,100].map(d=>\`<button class="btn" data-expr="1d\${d}" data-name="d\${d}">d\${d}</button>\`).join('');
 $('#res').innerHTML=RES.map(([k,n,d,m])=>\`<div class="res"><div><b>\${n}</b><small>\${d}</small></div><div class="dots" data-dots="res.\${k}" data-max="\${m}">\${Array.from({length:m},(_,i)=>\`<button data-i="\${i}" aria-label="charge \${i+1}"></button>\`).join('')}</div></div>\`).join('');
@@ -471,9 +502,10 @@ function renderWeapons(){
   if(!$('#weapons'))return;
   const btns=[];
   const handledNames=new Set();
-  // 1. Armes issues des objets magiques équipés
+  // 1. Armes & armures issues des objets magiques équipés
   (S.magicItems||[]).forEach(m=>{
-    const expr=(m.expr||findWeapExpr(m.name)||'').trim();
+    const isArmor=/armure|bouclier/i.test(m.slot||'');
+    const expr=(m.expr||findWeapExpr(m.name)||(isArmor?'1d4':'')||'').trim();
     if(expr){
       handledNames.add(normName(m.name));
       if(m.equipped!==false){
@@ -481,15 +513,18 @@ function renderWeapons(){
       }
     }
   });
-  // 2. Armes issues de l'inventaire non consommable équipées (et qté > 0)
+  // 2. Armes & armures issues de l'inventaire non consommable équipées
   Object.keys(S.gear||{}).forEach(k=>{
     const label=S.gearLabels?.[k]||GEAR[k]||k;
     const meta=S.gearMeta?.[k]||{};
-    const expr=(meta.expr||findWeapExpr(label)||'').trim();
+    const isArmor=meta.category==='Armure';
+    const expr=(meta.expr||findWeapExpr(label)||(isArmor?'1d4':'')||'').trim();
     if(expr){
       handledNames.add(normName(label));
-      if((S.gear[k]||0)>0&&meta.equipped!==false){
-        btns.push(\`<button class="btn" data-expr="\${esc(expr)}" data-name="\${esc(label)}" title="Arme d'inventaire équipée">⚔ \${esc(label)} <small>\${esc(expr)}</small></button>\`);
+      if(meta.equipped!==false){
+        const icon=isArmor?'🛡':'⚔';
+        const title=isArmor?"Armure équipée":"Arme d'inventaire équipée";
+        btns.push(\`<button class="btn" data-expr="\${esc(expr)}" data-name="\${esc(label)}" title="\${title}">\${icon} \${esc(label)} <small>\${esc(expr)}</small></button>\`);
       }
     }
   });
@@ -505,16 +540,18 @@ function renderWeapons(){
 const stepRow=(k,n,grp)=>\`<div class="row"><button class="del-row" data-del="\${k}" data-grp="\${grp}" title="Supprimer">×</button><span>\${n}</span><button class="st" data-k="\${k}" data-d="-1">−</button><input type="number" data-k="\${k}"><button class="st" data-k="\${k}" data-d="1">+</button></div>\`;
 const gearRow=k=>{
   const label=S.gearLabels?.[k]||GEAR[k]||k;
-  const meta=S.gearMeta?.[k]||(S.gearMeta[k]={expr:findWeapExpr(label),equipped:true});
-  const expr=(meta.expr||findWeapExpr(label)||'').trim();
+  const defExpr=findWeapExpr(label);
+  const meta=S.gearMeta?.[k]||(S.gearMeta[k]={category:defExpr?'Arme':'Équipement',expr:defExpr,equipped:true});
+  const cat=['Équipement','Arme','Armure'].includes(meta.category)?meta.category:(meta.expr||defExpr?'Arme':'Équipement');
+  meta.category=cat;
+  const expr=(meta.expr||defExpr||(cat==='Armure'?'1d4':'')||'').trim();
+  if(expr&&!meta.expr)meta.expr=expr;
+  const catIcon=cat==='Arme'?'⚔':cat==='Armure'?'🛡':'🎒';
   const eq=meta.equipped!==false;
   return \`<div class="row">
     <button class="del-row" data-del="gear.\${k}" data-grp="gear" title="Supprimer">×</button>
-    <span>\${esc(label)}\${expr?\` <span class="badge" style="font-size:11px;margin-left:4px">⚔ \${esc(expr)}</span>\`:''}</span>
-    \${expr?\`<button class="btn \${eq?'on':''}" style="padding:2px 8px;font-size:11px;white-space:nowrap" data-toggle-gear="\${k}" title="Équiper / ranger pour afficher dans Dés & armes">\${eq?'⚔ Équipé':'En sac'}</button>\`:''}
-    <button class="st" data-k="gear.\${k}" data-d="-1">−</button>
-    <input type="number" data-k="gear.\${k}">
-    <button class="st" data-k="gear.\${k}" data-d="1">+</button>
+    <span>\${esc(label)} <span class="badge" style="font-size:11px;margin-left:4px">\${catIcon} \${esc(cat)}</span>\${expr?\` <span class="badge" style="font-size:11px;margin-left:4px">🎲 \${esc(expr)}</span>\`:''}</span>
+    <button class="btn \${eq?'on':''}" style="padding:2px 8px;font-size:11px;white-space:nowrap" data-toggle-gear="\${k}" title="Équiper / ranger en sac">\${eq?'✓ Équipé':'En sac'}</button>
   </div>\`;
 };
 function renderLists(){
@@ -522,10 +559,16 @@ function renderLists(){
   if($('#gear'))$('#gear').innerHTML=Object.keys(S.gear).map(k=>gearRow(k)).join('');
   if($('#chasse'))$('#chasse').innerHTML=Object.keys(S.chasse).map(k=>stepRow('chasse.'+k,S.chasseLabels?.[k]||CHASSE_LAB[k]||k,'chasse')).join('');
   if($('#skills')){
-    if(!S.skills.length){
-      $('#skills').innerHTML='<div style="color:var(--mute);font-size:13px;font-style:italic;padding:4px 0">Aucune compétence enregistrée (cliquez sur ✎ Éditer pour en ajouter).</div>';
-    }else{
-      $('#skills').innerHTML=S.skills.map((sk,idx)=>{
+    const inferCat=sk=>{
+      if(['Social','Corporel','Utilitaire'].includes(sk.category))return sk.category;
+      if(sk.stat==='Social'||sk.stat==='Volonté')return 'Social';
+      if(sk.stat==='Force'||sk.stat==='Consti'||sk.stat==='Dextérité')return 'Corporel';
+      return 'Utilitaire';
+    };
+    const cats=[['Social','🗣 Social'],['Corporel','💪 Corporel'],['Utilitaire','🛠 Utilitaire']];
+    $('#skills').innerHTML=cats.map(([catKey,catTitle])=>{
+      const items=S.skills.map((sk,idx)=>({sk,idx})).filter(({sk})=>inferCat(sk)===catKey);
+      const rows=items.length?items.map(({sk,idx})=>{
         const stKey=sk.stat&&sk.stat in DEF.stats?sk.stat:'';
         const stLab=stKey?(LAB[stKey]||stKey):'Passif';
         const bon=+(sk.bonus||0);
@@ -533,18 +576,19 @@ function renderLists(){
         const base=stKey?+(S.stats[stKey]||50)+ +(S.statBonus?.[stKey]||0):0;
         const tot=base+bon;
         return \`<div class="res" style="flex-wrap:wrap">
-          <div style="display:flex;align-items:flex-start;gap:8px;flex:1;min-width:200px">
+          <div style="display:flex;align-items:flex-start;gap:6px;flex:1;min-width:140px">
             <button class="del-row" data-del-skill="\${idx}" title="Supprimer">×</button>
             <div>
               <b>\${esc(sk.name||'Compétence')}</b>
-              <span class="badge" style="margin-left:4px;font-size:11px">\${esc(stLab)}\${bonTxt?' '+bonTxt:''}</span>
+              <div style="margin:2px 0"><span class="badge" style="font-size:11px">\${esc(stLab)}\${bonTxt?' '+bonTxt:''}</span></div>
               <small>\${esc(sk.desc||'')}</small>
             </div>
           </div>
-          \${stKey?\`<button class="btn" style="padding:4px 10px;font-size:12px;white-space:nowrap" data-roll-skill="\${idx}">🎲 Jet (<span data-skill-tot="\${idx}">\${tot}</span>)</button>\`:''}
+          \${stKey?\`<button class="btn" style="padding:4px 9px;font-size:12px;white-space:nowrap" data-roll-skill="\${idx}">🎲 Jet (<span data-skill-tot="\${idx}">\${tot}</span>)</button>\`:''}
         </div>\`;
-      }).join('');
-    }
+      }).join(''):'<div style="color:var(--mute);font-size:12px;font-style:italic;padding:4px 0">Aucune compétence.</div>';
+      return \`<div class="card"><div class="lbl">\${catTitle}</div>\${rows}</div>\`;
+    }).join('');
   }
   if($('#magic-items')){
     if(!S.magicItems.length){
@@ -728,7 +772,11 @@ document.addEventListener('click',e=>{
     }
     return;
   }
-  if(b.dataset.d){const k=b.dataset.k;put(S,k,clamp(k,(+get(S,k)||0)+ +b.dataset.d));if(k.startsWith('gear.'))renderWeapons();return change()}
+  if(b.dataset.d){
+    const k=b.dataset.k;
+    if((EDIT_ONLY_VITALS.has(k)||k.startsWith('statBonus.'))&&!document.body.classList.contains('edit'))return;
+    put(S,k,clamp(k,(+get(S,k)||0)+ +b.dataset.d));if(k.startsWith('gear.'))renderWeapons();return change();
+  }
   if(b.dataset.roll)return rollStat(b.dataset.roll);
   if(b.dataset.expr)return rollExpr(b.dataset.expr,b.dataset.name);
   const mdots=b.closest('[data-magic-dots]');
@@ -741,6 +789,7 @@ document.addEventListener('click',e=>{
   if(dots){const k=dots.dataset.dots,i=+b.dataset.i;put(S,k,get(S,k)==i+1?i:i+1);return change()}
 });
 document.addEventListener('input',e=>{const el=e.target,k=el.dataset.k;if(!k)return;
+  if((EDIT_ONLY_VITALS.has(k)||k.startsWith('statBonus.'))&&!document.body.classList.contains('edit')){sync();return}
   put(S,k,el.type=='number'?clamp(k,+el.value||0):el.value);
   if(k.startsWith('gear.'))renderWeapons();
   if(el.type=='number'||k.startsWith('meta.')){sync()}save()});
@@ -800,10 +849,13 @@ if($('#add-item'))$('#add-item').onclick=()=>{
   S.items[k]=1;S.itemLabels=S.itemLabels||{};S.itemLabels[k]=name;inp.value='';renderLists();change();
 };
 if($('#add-gear'))$('#add-gear').onclick=()=>{
-  const inp=$('#new-gear'),eInp=$('#new-gear-expr'),name=inp.value.trim(),expr=(eInp?.value||'').trim();if(!name)return;
+  const inp=$('#new-gear'),cSel=$('#new-gear-cat'),eInp=$('#new-gear-expr'),name=inp.value.trim(),rawExpr=(eInp?.value||'').trim();if(!name)return;
+  const rawCat=cSel?cSel.value:(rawExpr?'Arme':'Équipement');
+  const cat=rawExpr&&rawCat==='Équipement'?'Arme':rawCat;
+  const expr=rawExpr||(cat==='Armure'?'1d4':cat==='Arme'?'1d6':'');
   const k=name.replace(/[^a-zA-Z0-9_]/g,'_')+'_'+Date.now().toString(36).slice(-3);
   S.gear[k]=1;S.gearLabels=S.gearLabels||{};S.gearLabels[k]=name;
-  S.gearMeta=S.gearMeta||{};S.gearMeta[k]={expr,equipped:true};
+  S.gearMeta=S.gearMeta||{};S.gearMeta[k]={category:cat,expr,equipped:true};
   inp.value='';if(eInp)eInp.value='';renderLists();change();
 };
 if($('#add-chasse'))$('#add-chasse').onclick=()=>{
@@ -819,9 +871,9 @@ if($('#add-magic'))$('#add-magic').onclick=()=>{
   nInp.value='';sInp.value='';if(eInp)eInp.value='';dInp.value='';if(mInp)mInp.value='0';renderLists();change();
 };
 if($('#add-skill'))$('#add-skill').onclick=()=>{
-  const nInp=$('#new-skill-name'),stSel=$('#new-skill-stat'),bInp=$('#new-skill-bonus'),dInp=$('#new-skill-desc');
+  const nInp=$('#new-skill-name'),cSel=$('#new-skill-cat'),stSel=$('#new-skill-stat'),bInp=$('#new-skill-bonus'),dInp=$('#new-skill-desc');
   const name=nInp.value.trim();if(!name)return;
-  S.skills.push({name,stat:stSel?stSel.value:'',bonus:+(bInp?.value||0),desc:dInp.value.trim()});
+  S.skills.push({name,category:cSel?cSel.value:'Utilitaire',stat:stSel?stSel.value:'',bonus:+(bInp?.value||0),desc:dInp.value.trim()});
   nInp.value='';dInp.value='';if(bInp)bInp.value='10';renderLists();change();
 };
 

@@ -252,10 +252,11 @@ const CHARACTER_TEMPLATES = {
       { name: "Initiative", expr: "1d10+2" }
     ],
     skills: [
-      { name: "Pistage & Chasse", stat: "Perception", bonus: 10, desc: "Suivre des traces, poser des collets et repérer les embuscades" },
-      { name: "Tir de précision", stat: "Dextérité", bonus: 5, desc: "Viser les points faibles à l'arc" },
-      { name: "Survie en nature", stat: "Intel", bonus: 10, desc: "Orientation, plantes médicinales, dressage du chien" },
-      { name: "Discrétion", stat: "Dextérité", bonus: 5, desc: "Se déplacer silencieusement en forêt" }
+      { name: "Dressage & Empathie animale", category: "Social", stat: "Social", bonus: 10, desc: "Commandement du chien de chasse et apaisement des bêtes" },
+      { name: "Tir de précision", category: "Corporel", stat: "Dextérité", bonus: 5, desc: "Viser les points faibles à l'arc" },
+      { name: "Discrétion", category: "Corporel", stat: "Dextérité", bonus: 5, desc: "Se déplacer silencieusement en forêt" },
+      { name: "Pistage & Chasse", category: "Utilitaire", stat: "Perception", bonus: 10, desc: "Suivre des traces, poser des collets et repérer les embuscades" },
+      { name: "Survie en nature", category: "Utilitaire", stat: "Intel", bonus: 10, desc: "Orientation, plantes médicinales, bivouac" }
     ],
     resources: [
       { key: "dragon", name: "Bénédiction du dragon", desc: "500 PO tous les 5 scénarios", value: 0, max: 5, rechargeOnScenario: false },
@@ -275,13 +276,14 @@ const CHARACTER_TEMPLATES = {
     ],
     gearCardTitle: "Inventaire non consommable",
     gear: [
-      { key: "hache", label: "Hache", value: 1, expr: "1d8", equipped: true },
-      { key: "poignard", label: "Poignard", value: 1, expr: "1d4+3", equipped: true },
-      { key: "pieges", label: "Pièges à loup", value: 2, expr: "", equipped: true },
-      { key: "clochettes", label: "Clochettes", value: 5, expr: "", equipped: true },
-      { key: "sifflets", label: "Sifflets de chasse", value: 20, expr: "", equipped: true },
-      { key: "cordes", label: "Cordes renforcées", value: 3, expr: "", equipped: true },
-      { key: "couverture", label: "Cape & couverture de bivouac", value: 1, expr: "", equipped: true }
+      { key: "hache", label: "Hache", category: "Arme", value: 1, expr: "1d8", equipped: true },
+      { key: "poignard", label: "Poignard", category: "Arme", value: 1, expr: "1d4+3", equipped: true },
+      { key: "armureCuir", label: "Armure de cuir souple", category: "Armure", value: 1, expr: "1d4", equipped: true },
+      { key: "pieges", label: "Pièges à loup", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "clochettes", label: "Clochettes", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "sifflets", label: "Sifflets de chasse", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "cordes", label: "Cordes renforcées", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "couverture", label: "Cape & couverture de bivouac", category: "Équipement", value: 1, expr: "", equipped: true }
     ],
     showSecondaryCard: true,
     secondaryCardTitle: "Tableau de chasse",
@@ -355,8 +357,9 @@ const CHARACTER_TEMPLATES = {
       { name: "Initiative", expr: "1d10" }
     ],
     skills: [
-      { name: "Athlétisme", stat: "Force", bonus: 0, desc: "Escalade, saut, nage et effort physique" },
-      { name: "Observation", stat: "Perception", bonus: 5, desc: "Repérer les détails cachés et les pièges" }
+      { name: "Éloquence", category: "Social", stat: "Social", bonus: 0, desc: "Convaincre, négocier et recueillir des informations" },
+      { name: "Athlétisme", category: "Corporel", stat: "Force", bonus: 0, desc: "Escalade, saut, nage et effort physique" },
+      { name: "Observation", category: "Utilitaire", stat: "Perception", bonus: 5, desc: "Repérer les détails cachés et les pièges" }
     ],
     resources: [
       { key: "pouvoir1", name: "Capacité spéciale", desc: "Utilisable 3 fois par scénario", value: 3, max: 3, rechargeOnScenario: true }
@@ -372,12 +375,13 @@ const CHARACTER_TEMPLATES = {
     ],
     gearCardTitle: "Inventaire non consommable",
     gear: [
-      { key: "armePrincipale", label: "Arme principale", value: 1, expr: "1d8", equipped: true },
-      { key: "dague", label: "Dague", value: 1, expr: "1d4+1", equipped: true },
-      { key: "cordes", label: "Corde (10m)", value: 1, expr: "", equipped: true },
-      { key: "sacCouchage", label: "Sac de couchage", value: 1, expr: "", equipped: true },
-      { key: "briquet", label: "Briquet à silex", value: 1, expr: "", equipped: true },
-      { key: "outre", label: "Outre d'eau", value: 1, expr: "", equipped: true }
+      { key: "armePrincipale", label: "Arme principale", category: "Arme", value: 1, expr: "1d8", equipped: true },
+      { key: "dague", label: "Dague", category: "Arme", value: 1, expr: "1d4+1", equipped: true },
+      { key: "armureCuir", label: "Armure de cuir", category: "Armure", value: 1, expr: "1d4", equipped: true },
+      { key: "cordes", label: "Corde (10m)", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "sacCouchage", label: "Sac de couchage", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "briquet", label: "Briquet à silex", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "outre", label: "Outre d'eau", category: "Équipement", value: 1, expr: "", equipped: true }
     ],
     showSecondaryCard: true,
     secondaryCardTitle: "Tableau de chasse & Hauts faits",
@@ -435,9 +439,10 @@ const CHARACTER_TEMPLATES = {
       { name: "Initiative", expr: "1d10+1" }
     ],
     skills: [
-      { name: "Armes lourdes", stat: "Force", bonus: 10, desc: "Maniement de l'espadon et du marteau de guerre" },
-      { name: "Mur de bouclier", stat: "Consti", bonus: 10, desc: "Tenir la ligne et encaisser les charges" },
-      { name: "Intimidation", stat: "Social", bonus: 5, desc: "Faire plier l'adversaire par la prestance" }
+      { name: "Intimidation", category: "Social", stat: "Social", bonus: 5, desc: "Faire plier l'adversaire par la prestance" },
+      { name: "Armes lourdes", category: "Corporel", stat: "Force", bonus: 10, desc: "Maniement de l'espadon et du marteau de guerre" },
+      { name: "Mur de bouclier", category: "Corporel", stat: "Consti", bonus: 10, desc: "Tenir la ligne et encaisser les charges" },
+      { name: "Tactique & Armurerie", category: "Utilitaire", stat: "Intel", bonus: 5, desc: "Entretien des armes et lecture du champ de bataille" }
     ],
     resources: [
       { key: "secondSouffle", name: "Second souffle", desc: "Récupère 1d6+2 PV en combat", value: 2, max: 2, rechargeOnScenario: true },
@@ -456,11 +461,11 @@ const CHARACTER_TEMPLATES = {
     ],
     gearCardTitle: "Inventaire non consommable",
     gear: [
-      { key: "marteauGuerre", label: "Marteau de guerre", value: 1, expr: "1d10+2", equipped: true },
-      { key: "bouclierAcier", label: "Coup de bouclier", value: 1, expr: "1d4+2", equipped: true },
-      { key: "armurePlates", label: "Demi-plate renforcée", value: 1, expr: "", equipped: true },
-      { key: "pierreAffuter", label: "Pierres à affûter", value: 3, expr: "", equipped: true },
-      { key: "grappin", label: "Grappin & corde de chanvre", value: 1, expr: "", equipped: true }
+      { key: "marteauGuerre", label: "Marteau de guerre", category: "Arme", value: 1, expr: "1d10+2", equipped: true },
+      { key: "bouclierAcier", label: "Coup de bouclier", category: "Arme", value: 1, expr: "1d4+2", equipped: true },
+      { key: "armurePlates", label: "Demi-plate renforcée", category: "Armure", value: 1, expr: "1d6+2", equipped: true },
+      { key: "pierreAffuter", label: "Pierres à affûter", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "grappin", label: "Grappin & corde de chanvre", category: "Équipement", value: 1, expr: "", equipped: true }
     ],
     showSecondaryCard: true,
     secondaryCardTitle: "Tableau de chasse",
@@ -523,9 +528,11 @@ const CHARACTER_TEMPLATES = {
       { name: "Initiative", expr: "1d10+3" }
     ],
     skills: [
-      { name: "Canalisation arcanique", stat: "Intel", bonus: 10, desc: "Maîtrise des vents de magie et incantations" },
-      { name: "Savoir ancien & Runes", stat: "Intel", bonus: 10, desc: "Déchiffrer les grimoires et identifier les reliques" },
-      { name: "Sens de l'Éther", stat: "Perception", bonus: 5, desc: "Détecter les auras magiques et la corruption" }
+      { name: "Étiquette & Diplomatie", category: "Social", stat: "Social", bonus: 5, desc: "Codes de la haute société et des cercles érudits" },
+      { name: "Esquive & Sang-froid", category: "Corporel", stat: "Dextérité", bonus: 5, desc: "Se dégager d'une mêlée pour incanter" },
+      { name: "Canalisation arcanique", category: "Utilitaire", stat: "Intel", bonus: 10, desc: "Maîtrise des vents de magie et incantations" },
+      { name: "Savoir ancien & Runes", category: "Utilitaire", stat: "Intel", bonus: 10, desc: "Déchiffrer les grimoires et identifier les reliques" },
+      { name: "Sens de l'Éther", category: "Utilitaire", stat: "Perception", bonus: 5, desc: "Détecter les auras magiques et la corruption" }
     ],
     resources: [
       { key: "sceauAether", name: "Sceau d'Éther", desc: "Relance un jet de canalisation magique", value: 3, max: 3, rechargeOnScenario: true },
@@ -545,10 +552,11 @@ const CHARACTER_TEMPLATES = {
     ],
     gearCardTitle: "Inventaire non consommable",
     gear: [
-      { key: "grimoire", label: "Grimoire de la Tour d'Argent", value: 1, expr: "", equipped: true },
-      { key: "plumeEncre", label: "Nécessaire de calligraphie", value: 1, expr: "", equipped: true },
-      { key: "loupeRunique", label: "Loupe d'expertise", value: 1, expr: "", equipped: true },
-      { key: "lanterne", label: "Lanterne sourde", value: 1, expr: "", equipped: true }
+      { key: "togeArcanique", label: "Toge de protection runique", category: "Armure", value: 1, expr: "1d4", equipped: true },
+      { key: "grimoire", label: "Grimoire de la Tour d'Argent", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "plumeEncre", label: "Nécessaire de calligraphie", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "loupeRunique", label: "Loupe d'expertise", category: "Équipement", value: 1, expr: "", equipped: true },
+      { key: "lanterne", label: "Lanterne sourde", category: "Équipement", value: 1, expr: "", equipped: true }
     ],
     showSecondaryCard: true,
     secondaryCardTitle: "Créatures étudiées",

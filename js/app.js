@@ -110,6 +110,13 @@ function loadRoster() {
       else if (ch.id === "lyra-valen") ch.skills = structuredClone(CHARACTER_TEMPLATES.mage.skills);
       else ch.skills = [];
     }
+    ch.skills.forEach(sk => {
+      if (!["Social", "Corporel", "Utilitaire"].includes(sk.category)) {
+        if (sk.stat === "Social" || sk.stat === "Volonté") sk.category = "Social";
+        else if (sk.stat === "Force" || sk.stat === "Consti" || sk.stat === "Dextérité") sk.category = "Corporel";
+        else sk.category = "Utilitaire";
+      }
+    });
     if (!Array.isArray(ch.gear)) {
       if (ch.id === "elara-lorens") ch.gear = structuredClone(CHARACTER_TEMPLATES.elara.gear);
       else if (ch.id === "garrick-vane") ch.gear = structuredClone(CHARACTER_TEMPLATES.guerrier.gear);
@@ -131,7 +138,7 @@ function loadRoster() {
     if (Array.isArray(ch.gear)) {
       if (tplMatch) {
         tplMatch.gear.forEach(tg => {
-          if (tg.expr && !ch.gear.some(g => g.key === tg.key || (g.label || "").toLowerCase() === tg.label.toLowerCase())) {
+          if ((tg.expr || tg.category === "Armure") && !ch.gear.some(g => g.key === tg.key || (g.label || "").toLowerCase() === tg.label.toLowerCase())) {
             ch.gear.unshift(structuredClone(tg));
           }
         });
@@ -140,6 +147,15 @@ function loadRoster() {
         if (g.expr === undefined) {
           const wMatch = (ch.weapons || []).find(w => (w.name || "").toLowerCase() === (g.label || "").toLowerCase());
           g.expr = wMatch ? wMatch.expr : "";
+        }
+        if (!["Équipement", "Arme", "Armure"].includes(g.category)) {
+          if ((g.expr || "").trim()) g.category = "Arme";
+          else if (/armure|plate|cotte|cuirasse|casque/i.test(g.label || "")) g.category = "Armure";
+          else g.category = "Équipement";
+        }
+        if (g.category === "Armure" && !(g.expr || "").trim()) {
+          const tplG = tplMatch?.gear?.find(tg => tg.key === g.key || (tg.label || "").toLowerCase() === (g.label || "").toLowerCase());
+          g.expr = tplG?.expr || "1d4";
         }
         if (g.equipped === undefined) g.equipped = true;
       });
@@ -442,9 +458,18 @@ function renderSkillsList() {
     ...(currentChar.stats || []).map(st => ({ key: st.key, label: st.label || st.key }))
   ];
 
+  const catOptions = [
+    { key: "Social", label: "🗣 Social" },
+    { key: "Corporel", label: "💪 Corporel" },
+    { key: "Utilitaire", label: "🛠 Utilitaire" }
+  ];
+
   container.innerHTML = currentChar.skills.map((sk, idx) => `
     <div class="list-row" data-idx="${idx}">
-      <input type="text" style="width:170px;font-weight:700" data-field="name" value="${escapeHtml(sk.name || "")}" placeholder="Nom (ex: Pistage)">
+      <input type="text" style="width:160px;font-weight:700" data-field="name" value="${escapeHtml(sk.name || "")}" placeholder="Nom (ex: Pistage)">
+      <select data-field="category" title="Catégorie de la compétence">
+        ${catOptions.map(c => `<option value="${c.key}" ${(sk.category || "Utilitaire") === c.key ? "selected" : ""}>${c.label}</option>`).join("")}
+      </select>
       <select data-field="stat" title="Caractéristique associée">
         ${statOptions.map(o => `<option value="${escapeHtml(o.key)}" ${sk.stat === o.key ? "selected" : ""}>${escapeHtml(o.label)}</option>`).join("")}
       </select>
@@ -506,17 +531,22 @@ function renderGearList() {
   if (!Array.isArray(currentChar.gear)) {
     currentChar.gear = [];
   }
+  const catOptions = [
+    { key: "Équipement", label: "🎒 Équipement" },
+    { key: "Arme", label: "⚔ Arme" },
+    { key: "Armure", label: "🛡 Armure" }
+  ];
   container.innerHTML = currentChar.gear.map((g, idx) => `
     <div class="list-row" data-idx="${idx}">
-      <input type="text" class="grow" data-field="label" value="${escapeHtml(g.label)}" placeholder="Nom de l'objet ou arme (ex: Hache, Corde 10m)">
-      <label style="font-size:11px;color:var(--mute)" title="Si c'est une arme, indiquez son jet de dés (ex: 1d8) pour l'afficher dans Dés & armes lorsqu'elle est équipée">Dés (arme)
+      <input type="text" class="grow" data-field="label" value="${escapeHtml(g.label)}" placeholder="Nom de l'objet (ex: Hache, Demi-plate, Corde 10m)">
+      <select data-field="category" title="Catégorie de l'objet non consommable">
+        ${catOptions.map(c => `<option value="${c.key}" ${(g.category || (g.expr ? "Arme" : "Équipement")) === c.key ? "selected" : ""}>${c.label}</option>`).join("")}
+      </select>
+      <label style="font-size:11px;color:var(--mute)" title="Si c'est une arme ou une armure, indiquez son jet de dés (ex: 1d8, 1d4) pour l'afficher dans Dés & armes lorsqu'elle est équipée">Dés (arme/armure)
         <input type="text" style="width:86px;text-align:center;font-weight:700" data-field="expr" value="${escapeHtml(g.expr || "")}" placeholder="ex: 1d8">
       </label>
-      <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer" title="Arme équipée (apparaît dans Dés & armes)">
+      <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer" title="Objet, arme ou armure équipé(e) (apparaît dans Dés & armes)">
         <input type="checkbox" data-field="equipped" ${g.equipped !== false ? "checked" : ""}> Équipé
-      </label>
-      <label style="font-size:11px;color:var(--mute)">Qté
-        <input type="number" class="num-input" data-field="value" value="${g.value}" min="0">
       </label>
       <button class="icon-btn" data-action="up" title="Monter" ${idx === 0 ? "disabled" : ""}>↑</button>
       <button class="icon-btn" data-action="down" title="Descendre" ${idx === currentChar.gear.length - 1 ? "disabled" : ""}>↓</button>
@@ -524,7 +554,16 @@ function renderGearList() {
     </div>
   `).join("");
 
-  bindListEvents(container, currentChar.gear, renderGearList, null, "play");
+  bindListEvents(container, currentChar.gear, renderGearList, (item, field, val, row) => {
+    if (field === "category") {
+      if ((val === "Armure" || val === "Arme") && !(item.expr || "").trim()) {
+        item.expr = val === "Armure" ? "1d4" : "1d6";
+        const exprInp = row?.querySelector("input[data-field='expr']");
+        if (exprInp) exprInp.value = item.expr;
+      }
+    }
+    return val;
+  }, "play");
 }
 
 function renderChasseList() {
@@ -944,6 +983,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const defaultStat = currentChar.stats?.[0]?.key || "";
     currentChar.skills.push({
       name: "Nouvelle compétence",
+      category: "Utilitaire",
       stat: defaultStat,
       bonus: 10,
       desc: "Description de la compétence…"
@@ -1004,7 +1044,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#add-gear-btn").addEventListener("click", () => {
     currentChar.gear = currentChar.gear || [];
     const k = "gear_" + Date.now().toString(36).slice(-4);
-    currentChar.gear.push({ key: k, label: "Nouvel objet classique", value: 1, expr: "", equipped: true });
+    currentChar.gear.push({ key: k, label: "Nouvel objet classique", category: "Équipement", value: 1, expr: "", equipped: true });
     renderGearList();
     onCharUpdated(true, "play");
   });
