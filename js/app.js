@@ -368,16 +368,26 @@ function updatePreview(immediate = false) {
   clearTimeout(previewTimer);
   const run = () => {
     if (!currentChar) return;
-    // Supprimer la sauvegarde temporaire de l'aperçu dans localStorage pour refléter les valeurs de l'éditeur en direct
     try {
       localStorage.removeItem(currentChar.storageKey);
     } catch (e) {}
-    const html = generateStandaloneHTML(currentChar);
     const frame = $("#preview-frame");
+    let prevScrollY = 0;
+    try {
+      prevScrollY = frame.contentWindow ? frame.contentWindow.scrollY : 0;
+    } catch (e) {}
+    const html = generateStandaloneHTML(currentChar, true);
+    frame.onload = () => {
+      try {
+        if (prevScrollY > 0 && frame.contentWindow) {
+          frame.contentWindow.scrollTo(0, prevScrollY);
+        }
+      } catch (e) {}
+    };
     frame.srcdoc = html;
   };
   if (immediate) run();
-  else previewTimer = setTimeout(run, 180);
+  else previewTimer = setTimeout(run, 120);
 }
 
 // ---- Redimensionnement & Compression du Portrait en Base64 autonome

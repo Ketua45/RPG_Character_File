@@ -18,7 +18,7 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
-function generateStandaloneHTML(char) {
+function generateStandaloneHTML(char, isPreview = false) {
   const c = char.theme?.colors || THEME_PRESETS.forest.colors;
   const defaultMode = char.theme?.defaultMode || "auto";
   const htmlThemeAttr = defaultMode === "light" ? ' data-theme="light"' : defaultMode === "dark" ? ' data-theme="dark"' : "";
@@ -230,6 +230,7 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
 </main>
 <script id="rpg-char-config" type="application/json">${embeddedConfig}</script>
 <script>
+const IS_PREVIEW=${JSON.stringify(!!isPreview)};
 const STORAGE_KEY=${JSON.stringify(storageKey)};
 const DEF=${JSON.stringify(defObj)};
 const LAB=${JSON.stringify(labObj)};
@@ -243,7 +244,7 @@ const get=(o,p)=>p.split('.').reduce((a,k)=>a?.[k],o);
 const put=(o,p,v)=>{const k=p.split('.'),l=k.pop();k.reduce((a,x)=>a[x],o)[l]=v};
 const merge=(a,b)=>{for(const k in b){a[k]=b[k]&&typeof b[k]=='object'&&!Array.isArray(b[k])&&a[k]?merge(a[k],b[k]):b[k]}return a};
 let S=structuredClone(DEF);
-try{const t=localStorage.getItem(STORAGE_KEY);if(t)merge(S,JSON.parse(t))}catch(e){}
+if(!IS_PREVIEW){try{const t=localStorage.getItem(STORAGE_KEY);if(t)merge(S,JSON.parse(t))}catch(e){}}
 if(!S.itemLabels)S.itemLabels={...ITEMS};
 if(!S.chasseLabels)S.chasseLabels={...CHASSE_LAB};
 const clean=()=>{for(const k in S.stats)if(!(k in DEF.stats))delete S.stats[k]};clean();
@@ -273,7 +274,7 @@ function sync(){
   $('#log').innerHTML=(S.log||[]).map(t=>\`<li>\${t}</li>\`).join('');
 }
 let lsOk=true;
-function persist(){S.t=Date.now();try{localStorage.setItem(STORAGE_KEY,JSON.stringify(S));lsOk=true}catch(e){lsOk=false}}
+function persist(){if(IS_PREVIEW)return;S.t=Date.now();try{localStorage.setItem(STORAGE_KEY,JSON.stringify(S));lsOk=true}catch(e){lsOk=false}}
 function status(){const h=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   $('#saved').textContent=lsOk?'✓ Sauvegardé à '+h+' · dans ce navigateur':'⚠ Sauvegarde locale indisponible : utilisez le bouton Sauvegarder (.json).'}
 function save(){persist();status()}
