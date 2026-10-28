@@ -43,7 +43,7 @@
         <button class="tab-btn active" data-tab="tab-identity">1. Identité &amp; Thème</button>
         <button class="tab-btn" data-tab="tab-stats">2. Statut &amp; Caractéristiques</button>
         <button class="tab-btn" data-tab="tab-combat">3. Dés, Armes &amp; Pouvoirs</button>
-        <button class="tab-btn" data-tab="tab-inventory">4. Inventaire &amp; Chasse</button>
+        <button class="tab-btn" data-tab="tab-inventory">4. Objets magiques &amp; Inventaire</button>
         <button class="tab-btn" data-tab="tab-lore">5. Historique &amp; Sessions</button>
         <button class="tab-btn" data-tab="tab-export">6. Notes &amp; Export</button>
       </nav>
@@ -180,8 +180,16 @@
         </div>
       </div>
 
-      <!-- Onglet 4 : Inventaire & Chasse -->
+      <!-- Onglet 4 : Objets magiques & Inventaire -->
       <div class="tab-content" id="tab-inventory">
+        <div class="section-card">
+          <div class="section-header">
+            <h2>✦ Objets magiques &amp; Reliques</h2>
+            <button class="btn btn-sm" id="add-magic-btn">+ Ajouter un objet magique</button>
+          </div>
+          <div class="item-list" id="magic-items-list"></div>
+        </div>
+
         <div class="section-card">
           <div class="section-header">
             <h2>Configuration des sections d'inventaire</h2>

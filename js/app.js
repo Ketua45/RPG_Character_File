@@ -153,6 +153,7 @@ function renderEditor() {
 
   renderItemsList();
   renderChasseList();
+  renderMagicItemsList();
   renderSessionsList();
 
   if (!currentChar.lore) {
@@ -330,6 +331,31 @@ function renderChasseList() {
       item.key = val || ("Entree_" + Date.now());
     }
   });
+}
+
+function renderMagicItemsList() {
+  const container = $("#magic-items-list");
+  if (!container) return;
+  if (!Array.isArray(currentChar.magicItems)) {
+    currentChar.magicItems = currentChar.id === "elara-lorens"
+      ? structuredClone(CHARACTER_TEMPLATES.elara.magicItems)
+      : [];
+  }
+  container.innerHTML = currentChar.magicItems.map((m, idx) => `
+    <div class="list-row" data-idx="${idx}">
+      <input type="text" style="width:170px;font-weight:700" data-field="name" value="${escapeHtml(m.name || "")}" placeholder="Nom (ex: Arc d'Aric)">
+      <input type="text" style="width:120px" data-field="slot" value="${escapeHtml(m.slot || "")}" placeholder="Type (Anneau, Arme…)">
+      <input type="text" class="grow" data-field="desc" value="${escapeHtml(m.desc || "")}" placeholder="Effets / propriétés magiques…">
+      <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer" title="Objet équipé">
+        <input type="checkbox" data-field="equipped" ${m.equipped !== false ? "checked" : ""}> Équipé
+      </label>
+      <button class="icon-btn" data-action="up" title="Monter" ${idx === 0 ? "disabled" : ""}>↑</button>
+      <button class="icon-btn" data-action="down" title="Descendre" ${idx === currentChar.magicItems.length - 1 ? "disabled" : ""}>↓</button>
+      <button class="icon-btn del" data-action="del" title="Supprimer">×</button>
+    </div>
+  `).join("");
+
+  bindListEvents(container, currentChar.magicItems, renderMagicItemsList, null, "play");
 }
 
 function renderSessionsList() {
@@ -696,6 +722,18 @@ document.addEventListener("DOMContentLoaded", () => {
     currentChar.chasse.push({ key: k, label: "Nouvelle entrée", value: 1 });
     renderChasseList();
     onCharUpdated();
+  });
+
+  $("#add-magic-btn").addEventListener("click", () => {
+    currentChar.magicItems = currentChar.magicItems || [];
+    currentChar.magicItems.push({
+      name: "Nouvel objet magique",
+      slot: "Relique",
+      desc: "Effets et propriétés…",
+      equipped: true
+    });
+    renderMagicItemsList();
+    onCharUpdated(true, "play");
   });
 
   // Champs Historique & Sessions

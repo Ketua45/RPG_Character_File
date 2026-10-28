@@ -39,6 +39,7 @@ function generateStandaloneHTML(char, isPreview = false, initialTab = "play") {
       relations: char.lore?.relations || ""
     },
     sessions: Array.isArray(char.sessions) ? structuredClone(char.sessions) : [],
+    magicItems: Array.isArray(char.magicItems) ? structuredClone(char.magicItems) : [],
     stats: {},
     res: {},
     items: {},
@@ -235,6 +236,17 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
   <div class="card" id="res"></div>
   <div class="foot"><button class="btn" id="scenar">${escapeHtml(char.scenarioBtnLabel || "⟳ Nouveau scénario (recharge pouvoirs)")}</button><button class="btn" id="rest">${escapeHtml(char.restBtnLabel || "☾ Repos : PV au max")}</button></div>
 
+  <h2>Objets magiques &amp; reliques</h2>
+  <div class="card">
+    <div id="magic-items"></div>
+    <div class="add-box" style="flex-wrap:wrap">
+      <input id="new-magic-name" placeholder="Nom de l'objet magique…" style="min-width:140px">
+      <input id="new-magic-slot" placeholder="Type (Anneau, Arme, Relique…)" style="max-width:160px">
+      <input id="new-magic-desc" placeholder="Effet / propriétés magiques…" style="min-width:200px;flex:2">
+      <button class="btn" id="add-magic">+ Ajouter</button>
+    </div>
+  </div>
+
   <h2>${escapeHtml(char.inventoryTitle || "Inventaire consommable")}</h2>
   <div class="grid g3">
     <div class="card">
@@ -329,6 +341,7 @@ if(!S.itemLabels)S.itemLabels={...ITEMS};
 if(!S.chasseLabels)S.chasseLabels={...CHASSE_LAB};
 if(!S.lore)S.lore={backstory:'',appearance:'',relations:''};
 if(!Array.isArray(S.sessions))S.sessions=[];
+if(!Array.isArray(S.magicItems))S.magicItems=[];
 const clean=()=>{for(const k in S.stats)if(!(k in DEF.stats))delete S.stats[k]};clean();
 
 // ---- navigation onglets fiche
@@ -349,6 +362,22 @@ const stepRow=(k,n,grp)=>\`<div class="row"><button class="del-row" data-del="\$
 function renderLists(){
   if($('#items'))$('#items').innerHTML=Object.keys(S.items).map(k=>stepRow('items.'+k,S.itemLabels?.[k]||ITEMS[k]||k,'items')).join('');
   if($('#chasse'))$('#chasse').innerHTML=Object.keys(S.chasse).map(k=>stepRow('chasse.'+k,S.chasseLabels?.[k]||CHASSE_LAB[k]||k,'chasse')).join('');
+  if($('#magic-items')){
+    if(!S.magicItems.length){
+      $('#magic-items').innerHTML='<div style="color:var(--mute);font-size:13px;font-style:italic;padding:4px 0">Aucun objet magique enregistré (cliquez sur ✎ Éditer pour en ajouter).</div>';
+    }else{
+      $('#magic-items').innerHTML=S.magicItems.map((m,idx)=>\`<div class="res">
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <button class="del-row" data-del-magic="\${idx}" title="Supprimer">×</button>
+          <div>
+            <b>\${esc(m.name||'Objet magique')}</b> \${m.slot?\`<span class="badge" style="margin-left:4px;font-size:11px">\${esc(m.slot)}</span>\`:''}
+            <small>\${esc(m.desc||'')}</small>
+          </div>
+        </div>
+        <button class="btn \${m.equipped!==false?'on':''}" style="padding:4px 10px;font-size:12px;white-space:nowrap" data-toggle-magic="\${idx}">\${m.equipped!==false?'✦ Équipé':'En sac'}</button>
+      </div>\`).join('');
+    }
+  }
 }
 renderLists();
 
@@ -411,6 +440,15 @@ document.addEventListener('click',e=>{
     if(grp=='items'){delete S.items[rawKey];if(S.itemLabels)delete S.itemLabels[rawKey]}
     if(grp=='chasse'){delete S.chasse[rawKey];if(S.chasseLabels)delete S.chasseLabels[rawKey]}
     renderLists();return change();
+  }
+  if(b.dataset.toggleMagic!==undefined){
+    const idx=+b.dataset.toggleMagic;
+    if(S.magicItems[idx]){S.magicItems[idx].equipped=S.magicItems[idx].equipped===false;renderLists();change()}
+    return;
+  }
+  if(b.dataset.delMagic!==undefined){
+    const idx=+b.dataset.delMagic;
+    S.magicItems.splice(idx,1);renderLists();return change();
   }
   if(b.dataset.editSess!==undefined){
     const idx=+b.dataset.editSess,s=S.sessions[idx];if(!s)return;
@@ -492,6 +530,12 @@ if($('#add-chasse'))$('#add-chasse').onclick=()=>{
   const inp=$('#new-chasse'),name=inp.value.trim();if(!name)return;
   const k=name.replace(/[^a-zA-Z0-9_]/g,'_')+'_'+Date.now().toString(36).slice(-3);
   S.chasse[k]=1;S.chasseLabels=S.chasseLabels||{};S.chasseLabels[k]=name;inp.value='';renderLists();change();
+};
+if($('#add-magic'))$('#add-magic').onclick=()=>{
+  const nInp=$('#new-magic-name'),sInp=$('#new-magic-slot'),dInp=$('#new-magic-desc');
+  const name=nInp.value.trim();if(!name)return;
+  S.magicItems.push({name,slot:sInp.value.trim(),desc:dInp.value.trim(),equipped:true});
+  nInp.value='';sInp.value='';dInp.value='';renderLists();change();
 };
 
 $('#export-save').onclick=()=>{

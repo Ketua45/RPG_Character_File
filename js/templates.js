@@ -276,6 +276,11 @@ const CHARACTER_TEMPLATES = {
       { key: "ObeGobelin", label: "ObeGobelin", value: 1 },
       { key: "Bouquetin", label: "Bouquetin", value: 1 }
     ],
+    magicItems: [
+      { name: "Arc d'Aric", slot: "Arme", desc: "Arc enchanté (+1 aux dégâts, 1d10+1)", equipped: true },
+      { name: "Anneau de foudre", slot: "Anneau", desc: "3 charges par scénario · À demander à Elaïth", equipped: true },
+      { name: "Anneau de Gang Bole", slot: "Anneau", desc: "3 charges par scénario · Flèche +2 dégâts, inesquivable", equipped: true }
+    ],
     cond: "",
     notes: "",
     lore: {
@@ -345,6 +350,7 @@ const CHARACTER_TEMPLATES = {
     chasse: [
       { key: "Boss", label: "Ennemis notables", value: 0 }
     ],
+    magicItems: [],
     cond: "",
     notes: "",
     lore: {
@@ -412,6 +418,10 @@ const CHARACTER_TEMPLATES = {
       { key: "Bandits", label: "Chefs brigands", value: 2 },
       { key: "Trolls", label: "Troll des collines", value: 1 }
     ],
+    magicItems: [
+      { name: "Espadon runique de Thorek", slot: "Arme", desc: "Lame gravée de runes naines (+3 aux dégâts)", equipped: true },
+      { name: "Talisman du Bastion", slot: "Amulette", desc: "+5 en Volonté contre la peur et la terreur", equipped: true }
+    ],
     cond: "",
     notes: "",
     lore: {
@@ -478,6 +488,11 @@ const CHARACTER_TEMPLATES = {
       { key: "Spectres", label: "Spectres bannis", value: 2 },
       { key: "Demons", label: "Démon mineur", value: 1 },
       { key: "Artefacts", label: "Reliques identifiées", value: 4 }
+    ],
+    magicItems: [
+      { name: "Bâton de Pierre de Lune", slot: "Bâton", desc: "Catalyseur arcanique (+5 aux tests d'Intelligence magique)", equipped: true },
+      { name: "Anneau du Voile", slot: "Anneau", desc: "Projette un bouclier cristallin (2 charges/scénar)", equipped: true },
+      { name: "Boussole d'Éther", slot: "Relique", desc: "Pointe vers la source de magie la plus proche", equipped: false }
     ],
     cond: "",
     notes: "",
