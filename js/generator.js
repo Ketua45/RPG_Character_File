@@ -202,8 +202,11 @@ body.edit .add-box{display:flex}
 .dice button{min-width:56px;font-size:15px;padding:7px 12px}
 .exp{display:flex;gap:8px;margin-top:10px}
 .exp input{flex:1;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:15px}
-#log{margin:10px 0 0;padding:0;list-style:none;font-size:15px;color:var(--mute)}
-#log li{padding:4px 0;border-bottom:1px dotted var(--line)}
+.log-head{display:flex;align-items:center;justify-content:space-between;margin-top:12px;margin-bottom:4px;font-size:12px;color:var(--mute);font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+#log{margin:0;padding:6px 10px;list-style:none;font-size:15px;color:var(--ink);max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:var(--soft)}
+#log li{padding:5px 0;border-bottom:1px dotted var(--line)}
+#log li:last-child{border-bottom:0}
+.ts{color:var(--mute);font-size:12px;font-family:Consolas,monospace;margin-right:6px;font-weight:600}
 textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;resize:vertical}
 .txt{min-height:0}
 .lore-area{min-height:130px;line-height:1.5}
@@ -222,11 +225,16 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
 .empty-msg{text-align:center;padding:24px;color:var(--mute);font-style:italic;background:var(--card);border:1px dashed var(--line);border-radius:10px;margin-top:10px}
 .foot{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
 .mini{font-size:12px;color:var(--mute);margin-top:6px}
+.print-tab-head{display:none;align-items:center;justify-content:space-between;background:var(--band);color:var(--on);border:1.5px solid var(--gold);border-radius:8px;padding:6px 12px;margin-bottom:10px;font-family:Georgia,serif;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 @media print{
-  .tools,.foot,.exp,#quick,#saved,.sheet-tabs{display:none!important}
-  .sheet-pane{display:block!important;margin-bottom:20px}
-  .bar{position:static;box-shadow:none}
-  body{background:#fff;color:#000}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  .tools,.foot,.exp,#quick,#saved,.sheet-tabs,.bar,.log-head,#log,.st,#archive-notes-btn,#toggle-sess-form,.sess-form,[data-edit-sess],[data-del-sess],.add-box,.del-row,.ed,.hero-ed{display:none!important}
+  .sheet-pane{display:block!important;margin-bottom:0}
+  .sheet-pane + .sheet-pane{page-break-before:always;break-before:page;padding-top:10px}
+  .print-tab-head{display:flex!important}
+  .card,.sess-card{break-inside:avoid;page-break-inside:avoid}
+  textarea{overflow:hidden!important;resize:none!important}
+  body{background:var(--bg);color:var(--ink)}
 }
 </style>
 </head>
@@ -246,7 +254,7 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
       <input data-k="meta.rank" placeholder="Grade (ex: Sergent)" title="Grade" style="width:140px">
     </div>
   </div>
-  <div class="tools"><button class="btn" id="edit">✎ Éditer</button><button class="btn" id="theme">◐ Thème</button></div>
+  <div class="tools"><button class="btn" id="edit">✎ Éditer</button><button class="btn" id="theme">◐ Thème</button><button class="btn" id="export-pdf" title="Exporter la fiche en PDF (1 onglet par page)">📄 PDF</button></div>
 </div>
 
 <div class="bar"><div id="last">🎲 Cliquez sur une caractéristique, une compétence ou une arme pour lancer les dés.</div></div>
@@ -259,6 +267,7 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
 
 <!-- ONGLET 1 : FICHE DE JEU -->
 <section class="sheet-pane ${initialTab === "play" ? "active" : ""}" id="pane-play">
+  <div class="print-tab-head"><span>⚔ Fiche de jeu</span><span>${escapeHtml(char.name || "PERSONNAGE")}</span></div>
   <h2>Statut</h2>
   <div class="grid g3" id="vitals"></div>
 
@@ -270,6 +279,10 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
     <div class="dice" id="weapons"></div>
     <div class="dice" id="quick" style="margin-top:10px"></div>
     <div class="exp"><input id="expr" placeholder="Jet libre : 2d6+3" aria-label="Jet libre"><button class="btn" id="go">Lancer</button></div>
+    <div class="log-head">
+      <span>Historique des jets (<span id="log-count">0</span>)</span>
+      <button class="btn" id="clear-log" style="padding:2px 8px;font-size:11px">Effacer l'historique</button>
+    </div>
     <ul id="log"></ul>
   </div>
 
@@ -328,6 +341,7 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
 
 <!-- ONGLET 2 : HISTORIQUE & LORE -->
 <section class="sheet-pane ${initialTab === "lore" ? "active" : ""}" id="pane-lore">
+  <div class="print-tab-head"><span>📜 Historique &amp; Lore</span><span>${escapeHtml(char.name || "PERSONNAGE")}</span></div>
   <h2>Origines &amp; Histoire du personnage</h2>
   <textarea class="lore-area" data-k="lore.backstory" style="min-height:160px" placeholder="Racontez l'histoire, le passé, l'origine et les événements fondateurs de votre personnage…"></textarea>
 
@@ -352,6 +366,7 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
 
 <!-- ONGLET 3 : JOURNAL DES SESSIONS / SCÉNARIOS -->
 <section class="sheet-pane ${initialTab === "sessions" ? "active" : ""}" id="pane-sessions">
+  <div class="print-tab-head"><span>📖 Journal des Sessions</span><span>${escapeHtml(char.name || "PERSONNAGE")}</span></div>
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:22px 0 10px;border-bottom:2px solid var(--gold);padding-bottom:6px">
     <h2 style="margin:0;border:0;padding:0">Journal des scénarios &amp; sessions</h2>
     <button class="btn" id="toggle-sess-form">+ Ajouter un scénario / une session</button>
@@ -377,6 +392,7 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
 
 <div class="foot">
   <button class="btn" id="reset">Réinitialiser le scénario</button>
+  <button class="btn" id="export-pdf-foot">📄 Exporter en PDF</button>
   <button class="btn" id="export-save">⬇ Sauvegarder état (.json)</button>
   <button class="btn" id="import-save-btn">⬆ Charger état (.json)</button>
   <input type="file" id="import-save-file" accept=".json" style="display:none">
@@ -535,7 +551,9 @@ function sync(){
   $$('[data-dots]').forEach(d=>{const v=get(S,d.dataset.dots);[...d.children].forEach((b,i)=>b.classList.toggle('f',i<v))});
   if($('#pvbar'))$('#pvbar').style.width=Math.max(0,Math.min(100,S.pv/(S.pvMax||1)*100))+'%';
   $$('[data-meter]').forEach(m=>{const max=+(m.dataset.max||100);m.style.width=Math.min(100,(S[m.dataset.meter]||0)/max*100)+'%'});
-  $('#log').innerHTML=(S.log||[]).map(t=>\`<li>\${t}</li>\`).join('');
+  const logs=S.log||[];
+  if($('#log-count'))$('#log-count').textContent=logs.length;
+  $('#log').innerHTML=logs.length?logs.map(t=>\`<li>\${t}</li>\`).join(''):'<li style="color:var(--mute);font-style:italic;font-size:13px">Aucun jet enregistré pour cette session.</li>';
 }
 let lsOk=true;
 function persist(){if(IS_PREVIEW)return;S.t=Date.now();try{localStorage.setItem(STORAGE_KEY,JSON.stringify(S));lsOk=true}catch(e){lsOk=false}}
@@ -556,7 +574,15 @@ const clamp=(k,v)=>{
 };
 
 // ---- dés
-function say(html){$('#last').innerHTML=html;S.log.unshift(html);S.log=S.log.slice(0,10);change()}
+function say(html){
+  const ts=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const entry=\`<span class="ts">[\${ts}]</span>\${html}\`;
+  $('#last').innerHTML=entry;
+  if(!Array.isArray(S.log))S.log=[];
+  S.log.unshift(entry);
+  change();
+  const lg=$('#log');if(lg)lg.scrollTop=0;
+}
 const rnd=n=>1+Math.floor(Math.random()*n);
 function rollExpr(e,name){const m=e.replace(/\\s/g,'').match(/^(\\d*)d(\\d+)([+-]\\d+)?$/i);if(!m)return say('<span class="ko">Format invalide</span> : essayez 1d10+2');
   const n=Math.min(+(m[1]||1),50),f=+m[2],b=+(m[3]||0);if(f<2)return;const r=Array.from({length:n},()=>rnd(f));
@@ -634,6 +660,7 @@ document.addEventListener('input',e=>{const el=e.target,k=el.dataset.k;if(!k)ret
   if(el.type=='number'||k.startsWith('meta.')){sync()}save()});
 $('#go').onclick=()=>rollExpr($('#expr').value,'Jet libre');
 $('#expr').onkeydown=e=>{if(e.key=='Enter')$('#go').click()};
+if($('#clear-log'))$('#clear-log').onclick=()=>{S.log=[];change()};
 $('#edit').onclick=e=>{document.body.classList.toggle('edit');e.target.classList.toggle('on')};
 $('#theme').onclick=()=>{const r=document.documentElement,d=getComputedStyle(r).getPropertyValue('--bg').trim()==${JSON.stringify(c.darkBg)};r.dataset.theme=d?'light':'dark'};
 function rechargeScenario(){
@@ -715,6 +742,20 @@ $('#export-save').onclick=()=>{
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=STORAGE_KEY+'-sauvegarde.json';a.click();URL.revokeObjectURL(a.href);
 };
+function exportPDF(){
+  const wasEdit=document.body.classList.contains('edit');
+  if(wasEdit)document.body.classList.remove('edit');
+  $$('.sheet-pane').forEach(p=>p.style.display='block');
+  $$('textarea').forEach(ta=>{ta.dataset.origH=ta.style.height||'';ta.style.height='auto';ta.style.height=(ta.scrollHeight+6)+'px'});
+  window.print();
+  $$('textarea').forEach(ta=>{ta.style.height=ta.dataset.origH||''});
+  $$('.sheet-pane').forEach(p=>p.style.display='');
+  if(wasEdit)document.body.classList.add('edit');
+}
+if($('#export-pdf'))$('#export-pdf').onclick=exportPDF;
+if($('#export-pdf-foot'))$('#export-pdf-foot').onclick=exportPDF;
+addEventListener('beforeprint',()=>{$$('.sheet-pane').forEach(p=>p.style.display='block');$$('textarea').forEach(ta=>{ta.style.height='auto';ta.style.height=(ta.scrollHeight+6)+'px'})});
+addEventListener('afterprint',()=>{$$('.sheet-pane').forEach(p=>p.style.display='');$$('textarea').forEach(ta=>{ta.style.height=ta.dataset.origH||''})});
 $('#import-save-btn').onclick=()=>$('#import-save-file').click();
 $('#import-save-file').onchange=e=>{
   const f=e.target.files[0];if(!f)return;
