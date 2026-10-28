@@ -79,6 +79,15 @@ function loadRoster() {
       else if (ch.id === "lyra-valen") ch.gear = structuredClone(CHARACTER_TEMPLATES.mage.gear);
       else ch.gear = [];
     }
+    const tplMatch = ch.id === "elara-lorens" ? CHARACTER_TEMPLATES.elara
+      : ch.id === "garrick-vane" ? CHARACTER_TEMPLATES.guerrier
+      : ch.id === "lyra-valen" ? CHARACTER_TEMPLATES.mage
+      : null;
+    if (ch.gender === undefined) ch.gender = tplMatch?.gender || "";
+    if (ch.age === undefined) ch.age = tplMatch?.age || "";
+    if (ch.height === undefined) ch.height = tplMatch?.height || "";
+    if (ch.weight === undefined) ch.weight = tplMatch?.weight || "";
+    if (ch.rank === undefined) ch.rank = tplMatch?.rank || "";
   });
 
   const savedActiveId = localStorage.getItem(ACTIVE_ID_KEY);
@@ -173,6 +182,11 @@ function renderEditor() {
   $("#char-name").value = currentChar.name || "";
   $("#char-subtitle").value = currentChar.subtitle || "";
   $("#char-storage-key").value = currentChar.storageKey || "";
+  $("#char-gender").value = currentChar.gender || "";
+  $("#char-age").value = currentChar.age || "";
+  $("#char-height").value = currentChar.height || "";
+  $("#char-weight").value = currentChar.weight || "";
+  $("#char-rank").value = currentChar.rank || "";
   $("#portrait-img").src = currentChar.portrait || DEFAULT_AVATARS.ranger;
   $("#theme-preset").value = currentChar.theme?.preset || "forest";
   $("#theme-mode").value = currentChar.theme?.defaultMode || "auto";
@@ -743,6 +757,19 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#char-storage-key").addEventListener("input", e => {
     currentChar.storageKey = e.target.value.trim() || (slugify(currentChar.name) + "-v1");
     onCharUpdated();
+  });
+
+  [
+    ["#char-gender", "gender"],
+    ["#char-age", "age"],
+    ["#char-height", "height"],
+    ["#char-weight", "weight"],
+    ["#char-rank", "rank"]
+  ].forEach(([sel, key]) => {
+    $(sel)?.addEventListener("input", e => {
+      currentChar[key] = e.target.value;
+      onCharUpdated();
+    });
   });
 
   $("#portrait-file").addEventListener("change", e => processPortraitFile(e.target.files[0]));

@@ -33,6 +33,13 @@ function generateStandaloneHTML(char, isPreview = false, initialTab = "play") {
     pvMax: Number(hpVital.max) || Number(hpVital.value) || 15,
     cond: char.cond || "",
     notes: char.notes || "",
+    meta: {
+      gender: char.gender || "",
+      age: char.age || "",
+      height: char.height || "",
+      weight: char.weight || "",
+      rank: char.rank || ""
+    },
     lore: {
       backstory: char.lore?.backstory || "",
       appearance: char.lore?.appearance || "",
@@ -128,14 +135,20 @@ h2{font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:var(--acc)
 .hero img{width:76px;height:114px;object-fit:cover;border-radius:8px;border:2px solid var(--gold);flex-shrink:0}
 .hero h1{font-size:clamp(22px,6vw,34px);letter-spacing:.1em}
 .hero p{margin:4px 0 0;color:var(--gold);letter-spacing:.18em;font-size:11px;font-weight:700;text-transform:uppercase}
+.hero-meta{display:flex;flex-wrap:wrap;gap:6px 8px;margin-top:8px;font-size:12px;color:var(--on)}
+.hero-meta span{background:#0000002e;border:1px solid var(--gold);border-radius:6px;padding:2px 8px;white-space:nowrap}
+.hero-meta b{color:var(--gold);font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:.08em;margin-right:4px}
+.hero-ed{display:none;flex-wrap:wrap;gap:6px;margin-top:8px}
+body.edit .hero-ed{display:flex}
+.hero-ed input{width:110px;padding:4px 7px;border-radius:6px;border:1px solid var(--gold);background:#00000040;color:var(--on);font-size:12px}
 .tools{margin-left:auto;display:flex;flex-direction:column;gap:6px}
 button{font:inherit;cursor:pointer;color:inherit}
 .btn{background:var(--card);color:var(--acc);border:1px solid var(--gold);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600}
 .btn:hover{filter:brightness(1.04)}
 .btn.on{background:var(--gold);color:#1b1b1b}
-.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border:1px solid var(--gold);border-radius:10px;margin-top:10px;padding:8px 12px;display:flex;gap:12px;align-items:center;box-shadow:0 2px 8px #0002}
-.bar b{color:var(--red);font-family:Georgia,serif;white-space:nowrap}
-#last{flex:1;font-size:14px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border:1.5px solid var(--gold);border-radius:10px;margin-top:10px;padding:10px 14px;display:flex;gap:12px;align-items:center;box-shadow:0 2px 8px #0002}
+#last{flex:1;font-size:18px;line-height:1.35}
+#last b,.bar .ok,.bar .ko{font-size:19px}
 /* Onglets de navigation de la fiche */
 .sheet-tabs{display:flex;gap:8px;margin-top:14px;border-bottom:2px solid var(--line);padding-bottom:8px;overflow-x:auto}
 .sheet-tab{background:var(--card);color:var(--mute);border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-family:Georgia,serif;font-size:14px;font-weight:700;letter-spacing:.04em;white-space:nowrap;transition:all .15s}
@@ -186,11 +199,11 @@ body.edit .add-box{display:flex}
 .res{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dashed var(--line)}
 .res:last-child{border:0}.res small{display:block;color:var(--mute);font-size:12px}
 .dice{display:flex;flex-wrap:wrap;gap:8px}
-.dice button{min-width:52px}
+.dice button{min-width:56px;font-size:15px;padding:7px 12px}
 .exp{display:flex;gap:8px;margin-top:10px}
-.exp input{flex:1;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
-#log{margin:10px 0 0;padding:0;list-style:none;font-size:13px;color:var(--mute)}
-#log li{padding:2px 0;border-bottom:1px dotted var(--line)}
+.exp input{flex:1;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:15px}
+#log{margin:10px 0 0;padding:0;list-style:none;font-size:15px;color:var(--mute)}
+#log li{padding:4px 0;border-bottom:1px dotted var(--line)}
 textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;resize:vertical}
 .txt{min-height:0}
 .lore-area{min-height:130px;line-height:1.5}
@@ -221,11 +234,22 @@ textarea,.txt{width:100%;min-height:90px;padding:8px;border-radius:8px;border:1p
 <main>
 <div class="hero">
   ${char.portrait ? `<img src="${escapeHtml(char.portrait)}" alt="Portrait de ${escapeHtml(char.name)}">` : ""}
-  <div><h1>${escapeHtml(char.name || "PERSONNAGE")}</h1><p>${escapeHtml(char.subtitle || "")}</p></div>
+  <div style="flex:1;min-width:0">
+    <h1>${escapeHtml(char.name || "PERSONNAGE")}</h1>
+    <p>${escapeHtml(char.subtitle || "")}</p>
+    <div class="hero-meta" id="hero-meta"></div>
+    <div class="hero-ed">
+      <input data-k="meta.gender" placeholder="Genre (ex: Féminin)" title="Genre">
+      <input data-k="meta.age" placeholder="Âge (ex: 28 ans)" title="Âge">
+      <input data-k="meta.height" placeholder="Taille (ex: 1m72)" title="Taille">
+      <input data-k="meta.weight" placeholder="Poids (ex: 58 kg)" title="Poids">
+      <input data-k="meta.rank" placeholder="Grade (ex: Sergent)" title="Grade" style="width:140px">
+    </div>
+  </div>
   <div class="tools"><button class="btn" id="edit">✎ Éditer</button><button class="btn" id="theme">◐ Thème</button></div>
 </div>
 
-<div class="bar"><span>PV <b id="barpv"></b></span><div id="last">Cliquez sur une caractéristique ou une arme pour lancer les dés.</div></div>
+<div class="bar"><div id="last">🎲 Cliquez sur une caractéristique, une compétence ou une arme pour lancer les dés.</div></div>
 
 <nav class="sheet-tabs" aria-label="Sections de la fiche">
   <button class="sheet-tab ${initialTab === "play" ? "active" : ""}" data-sheet-tab="play">⚔ Fiche de jeu</button>
@@ -382,6 +406,7 @@ if(!S.itemLabels)S.itemLabels={...ITEMS};
 if(!S.gear)S.gear={};
 if(!S.gearLabels)S.gearLabels={...GEAR};
 if(!S.chasseLabels)S.chasseLabels={...CHASSE_LAB};
+if(!S.meta)S.meta=structuredClone(DEF.meta||{gender:'',age:'',height:'',weight:'',rank:''});
 if(!S.lore)S.lore={backstory:'',appearance:'',relations:''};
 if(!Array.isArray(S.sessions))S.sessions=[];
 if(!Array.isArray(S.magicItems))S.magicItems=[];
@@ -488,6 +513,11 @@ renderSessions();
 function sync(){
   $$('[data-k]').forEach(el=>{if(el.tagName=='BUTTON'||el===document.activeElement)return;const v=get(S,el.dataset.k);el.value=v??''});
   $$('[data-v]').forEach(el=>el.textContent=get(S,el.dataset.v));
+  if($('#hero-meta')){
+    const m=S.meta||{};
+    const fields=[['Genre',m.gender],['Âge',m.age],['Taille',m.height],['Poids',m.weight],['Grade',m.rank]].filter(([,v])=>v&&String(v).trim());
+    $('#hero-meta').innerHTML=fields.map(([l,v])=>\`<span><b>\${l}</b>\${esc(v)}</span>\`).join('');
+  }
   $$('[data-stat-tot]').forEach(el=>{
     const k=el.dataset.statTot,base=+(S.stats[k]||50),bon=+(S.statBonus?.[k]||0);
     el.textContent=base+bon;
@@ -505,7 +535,6 @@ function sync(){
   $$('[data-dots]').forEach(d=>{const v=get(S,d.dataset.dots);[...d.children].forEach((b,i)=>b.classList.toggle('f',i<v))});
   if($('#pvbar'))$('#pvbar').style.width=Math.max(0,Math.min(100,S.pv/(S.pvMax||1)*100))+'%';
   $$('[data-meter]').forEach(m=>{const max=+(m.dataset.max||100);m.style.width=Math.min(100,(S[m.dataset.meter]||0)/max*100)+'%'});
-  $('#barpv').textContent=S.pv+' / '+S.pvMax;
   $('#log').innerHTML=(S.log||[]).map(t=>\`<li>\${t}</li>\`).join('');
 }
 let lsOk=true;
@@ -602,7 +631,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('input',e=>{const el=e.target,k=el.dataset.k;if(!k)return;
   put(S,k,el.type=='number'?clamp(k,+el.value||0):el.value);
-  if(el.type=='number'){sync()}save()});
+  if(el.type=='number'||k.startsWith('meta.')){sync()}save()});
 $('#go').onclick=()=>rollExpr($('#expr').value,'Jet libre');
 $('#expr').onkeydown=e=>{if(e.key=='Enter')$('#go').click()};
 $('#edit').onclick=e=>{document.body.classList.toggle('edit');e.target.classList.toggle('on')};

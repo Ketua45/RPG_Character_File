@@ -2,7 +2,7 @@
 
 const THEME_PRESETS = {
   forest: {
-    name: "Forêt & Or (Elara · Défaut)",
+    name: "Forêt & Or (Défaut)",
     colors: {
       bg: "#f3eddd",
       card: "#fbf8ef",
@@ -217,6 +217,11 @@ const CHARACTER_TEMPLATES = {
     storageKey: "elara-v1",
     name: "ELARA LORENS",
     subtitle: "Demie-elfe · Rôdeuse · Trappeuse",
+    gender: "Féminin",
+    age: "28 ans",
+    height: "1m72",
+    weight: "58 kg",
+    rank: "Éclaireuse vétérane",
     portrait: ELARA_PORTRAIT,
     theme: {
       preset: "forest",
@@ -314,6 +319,11 @@ const CHARACTER_TEMPLATES = {
     storageKey: "perso-v1",
     name: "NOUVEAU PERSONNAGE",
     subtitle: "Race · Classe · Carrière",
+    gender: "Non spécifié",
+    age: "25 ans",
+    height: "1m75",
+    weight: "70 kg",
+    rank: "Recrue",
     portrait: DEFAULT_AVATARS.ranger,
     theme: {
       preset: "forest",
@@ -386,6 +396,11 @@ const CHARACTER_TEMPLATES = {
     storageKey: "garrick-v1",
     name: "GARRICK VANE",
     subtitle: "Humain · Guerrier · Briseur de boucliers",
+    gender: "Masculin",
+    age: "34 ans",
+    height: "1m88",
+    weight: "96 kg",
+    rank: "Sergent",
     portrait: DEFAULT_AVATARS.warrior,
     theme: {
       preset: "crimson",
@@ -468,6 +483,11 @@ const CHARACTER_TEMPLATES = {
     storageKey: "lyra-v1",
     name: "LYRA VALEN",
     subtitle: "Haute-elfe · Mage · Érudite des Arcanes",
+    gender: "Féminin",
+    age: "112 ans",
+    height: "1m76",
+    weight: "55 kg",
+    rank: "Magistère",
     portrait: DEFAULT_AVATARS.mage,
     theme: {
       preset: "arcane",
