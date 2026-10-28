@@ -11,7 +11,7 @@ Developed by **Compagnie Française de Systèmes et Algorithmes**.
 ### 🎨 Interactive Studio (`index.html`)
 - **Live Split-Screen Preview**: Edit identity, stats, skills, inventory, lore, and session logs on the left while testing the interactive character sheet in real time on the right (Desktop & Mobile views).
 - **Character Roster & Templates**: Manage multiple characters in browser `localStorage` and start quickly from 4 built-in templates:
-  - **Elara Lorens** *(Half-Elf · Ranger · Trapper)*
+  - **Elara Lorens** *(Half-Elf · Ranger · Scout)*
   - **Garrick Vane** *(Human · Warrior · Shieldbreaker)*
   - **Lyra Valen** *(High-Elf · Mage · Arcane Scholar)*
   - **Blank Standard Sheet** *(Customizable starter template)*
